@@ -1,0 +1,833 @@
+---
+/**
+ * Scene 4: the close. The coda, and the shortest scene on the page.
+ *
+ * WHAT IT ARGUES, AND WHY THAT AND NOT THE NUMBERS
+ *
+ * By now the visitor has watched a month arrive as a heap, every line found
+ * twice, and the verified total divided down to the part that is his. The
+ * arithmetic is settled and nobody distrusts it. What every owner of a small
+ * business HAS been burned by is a bookkeeper who went quiet in July.
+ *
+ * So this scene argues recurrence, not accuracy. That claim is unprovable in
+ * words — every firm makes it — and provable in one picture: the same stamp,
+ * the same day, three months running, and one empty folder with next month's
+ * date already on the tab.
+ *
+ * The three numbers a client buys are printed on the folder's label, small.
+ * That demotion is deliberate and it is the argument stated in typography: the
+ * figure that filled the screen ninety seconds ago is now one line on a label,
+ * on a folder, in a row of folders. That is what a closed month looks like.
+ *
+ * IT ALSO GIVES THE CAST AN ENDING
+ *
+ * The same five documents come back and are used three ways in sequence: as the
+ * FRAME (cropped around the edges, the image the site opened on), as the
+ * SUBJECT (a spread hand, all five named and readable — the widest picture in
+ * the story and the last), and as the OBJECT (inside the folder, mastheads
+ * disappearing under the lip). Their detail vanishing is not a loss; it is the
+ * definition of the word the scene is about, and it is exactly the product
+ * being sold — you stop having to look at any of it.
+ *
+ * The four clutter sheets do NOT come back. They were never named and never
+ * counted, and bringing unnamed paper back at the close would say the mess
+ * survived the month.
+ */
+import DocFace from './paper/DocFace.astro';
+import BeatBand from './BeatBand.astro';
+import { close as copy } from '../config/content';
+import { close as when, documents, understand, meta } from '../config/story';
+import { moneyShort } from '../lib/format';
+import { RUN } from '../config/scenes';
+
+/* Reading order of the hand, left to right: what came in, then what went out. */
+const ORDER = ['invoices', 'bank', 'payroll', 'operating', 'tax'];
+const byId = Object.fromEntries(documents.map((d) => [d.id, d]));
+const hand = ORDER.map((id) => byId[id]!);
+const n = hand.length;
+
+/*
+ * Every position below is arithmetic on the index, so the scene survives a
+ * rescin adding or dropping a document. Nothing here is a typed coordinate.
+ */
+const sheets = hand.map((doc, i) => {
+  /* k is signed distance from the middle of the hand: -2 … +2 for five. */
+  const k = i - (n - 1) / 2;
+  return {
+    doc,
+    i,
+    k,
+    /*
+     * AT REST: A SQUARED STACK, not a scatter.
+     *
+     * The first build opened this scene with the five documents strewn round
+     * the edge of the frame again, the way the site itself opens — and that is
+     * an argument running backwards. Three scenes have just been spent putting
+     * this month in order; a coda that begins by throwing it back on the floor
+     * says the order did not hold. Somebody who watched the sort, the
+     * reconciliation and the allocation has earned a tidy pile.
+     *
+     * So the paper starts tapped square, and the scene's first move is the hand
+     * being FANNED — which is also a better piece of motion than five sheets
+     * flying in from five directions, because a fan is what you actually do
+     * with a stack before you file it.
+     *
+     * All lengths are in `u`, the scene's derived unit; the sheet is 6.2u wide.
+     */
+    cx: +(k * 0.34).toFixed(2),
+    cy: +(-2.7 + Math.abs(k) * 0.14).toFixed(2),
+    crot: +(k * 1.1 + (i % 2 ? 0.9 : -0.9)).toFixed(2),
+    /* Laid out in a spread hand across the middle. */
+    fx: +(k * 4.2).toFixed(2),
+    /* Held ABOVE the folder's mouth, not on the middle of the desk — the pocket
+       rises into the lower half and the hand has to still be readable when it
+       does. */
+    fy: +(Math.abs(k) * 0.8 - 2.7).toFixed(2),
+    frot: +(k * 5.5).toFixed(2),
+    /* Squared into the folder: the hand closes and the shadows merge. */
+    sx: +(k * 0.4).toFixed(2),
+    srot: +(k * 1.1).toFixed(2),
+    /* Arrival. A heavier document lands slower, and the weight comes off the
+       data rather than off a taste call. */
+    d1: +(0.02 + i * 0.052).toFixed(3),
+    dur: +(0.11 + doc.rows.length * 0.006).toFixed(3),
+    z: 10 + i * 2,
+  };
+});
+
+/* The three numbers, demoted to a label. Values come from story.ts. */
+const figures = copy.figures.map((f) => {
+  const u = understand[f.id as keyof typeof understand];
+  return {
+    label: f.label,
+    value: f.id === 'cash' ? `+${moneyShort(u.answer)}` : moneyShort(u.answer),
+  };
+});
+
+const dateOf = (m: { closedOn: string }) => `${m.closedOn.slice(0, 3)} ${when.day}`.toUpperCase();
+const stampDate = dateOf(when.done[when.done.length - 1]!);
+
+/*
+ * The shelf. The month at the FRONT of the row is the folder being closed on
+ * screen, so it is not repeated here — only the months already shut behind it
+ * and the one that is not here yet.
+ *
+ * Each is placed by whole multiples of ONE variable, `--lap`, which is what
+ * puts every date stamp on a single line at every viewport size without a
+ * measured width anywhere.
+ */
+const past = when.done.slice(0, -1);
+const shelf = [
+  ...past.map((m, i) => ({ ...m, j: past.length - i, ghost: false })),
+  { ...when.next, j: -1, ghost: true },
+];
+const back = past.length;
+---
+
+<section class="close" data-scene="close" id="close" style={`--run:${RUN.close}`}>
+  <div class="close__pin">
+    <BeatBand
+      fade={0.035}
+      beats={[
+        { eyebrow: copy.eyebrow, heading: copy.heading, line: copy.line, from: 0, to: 0.6 },
+        { eyebrow: copy.eyebrow, heading: copy.sealHeading, line: copy.sealLine, from: 0.6, to: 0.78 },
+        { eyebrow: copy.eyebrow, heading: copy.nextHeading, line: copy.nextLine, from: 0.78 },
+      ]}
+    />
+
+    <div class="close__stage">
+      <div class="close__desk" style={`--back:${back};--fwd:1`} aria-hidden="true">
+        <!--
+          The shelf. Every month is placed only by `--j × --lap`, so consecutive
+          stamps are exactly one lap apart at the same height at every viewport
+          size — which is what puts the day figures on one line without a single
+          measured width.
+        -->
+        <div class="shelf">
+          {
+            shelf.map((m) => (
+              <div
+                class:list={['month', m.ghost && 'month--ghost']}
+                style={`--j:${m.j};z-index:${m.ghost ? 4 : 40 - m.j * 4}`}
+              >
+                <span class="month__tab">{m.name}</span>
+                <span class="month__body">
+                  <span class="month__stamp u-caps">
+                    <b>{copy.stamp}</b>
+                    <i>{dateOf(m)}</i>
+                  </span>
+                  {!m.ghost && <span class="month__strap" />}
+                  {m.ghost && <span class="month__due u-caps">{copy.due}</span>}
+                </span>
+              </div>
+            ))
+          }
+        </div>
+
+        <!--
+          The month itself. The five documents sail in, are held long enough to
+          be read, then sink behind the folder's front panel until only their
+          mastheads show under the lip.
+        -->
+        <div class="folder">
+          <span class="folder__back"></span>
+
+          <div class="stack">
+            {
+              sheets.map((s) => (
+                <div
+                  class={`sheet-slot slot--${s.doc.id}`}
+                  style={`--cx:${s.cx};--cy:${s.cy};--crot:${s.crot};--fx:${s.fx};--fy:${s.fy};--frot:${s.frot};--sx:${s.sx};--srot:${s.srot};--d1:${s.d1};--dur:${s.dur};z-index:${s.z}`}
+                >
+                  <DocFace doc={s.doc} variant="display" />
+                </div>
+              ))
+            }
+          </div>
+
+          <!-- Outside the front panel, because that panel is clipped to make
+               the thumb notch and a clip-path takes its children with it. -->
+          <span class="folder__tab">{meta.period}</span>
+
+          <span class="folder__front">
+            <span class="folder__label">
+              <span class="folder__lead u-caps">{copy.labelLead} · {meta.period}</span>
+              <ul class="folder__figures">
+                {
+                  figures.map((f) => (
+                    <li>
+                      <span>{f.label}</span>
+                      <b class="u-num">{f.value}</b>
+                    </li>
+                  ))
+                }
+              </ul>
+              <span class="folder__stamp u-caps">
+                <b>{copy.stamp}</b>
+                <i>{stampDate}</i>
+              </span>
+            </span>
+            <span class="folder__strap"></span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <p class="close__onward u-caps" data-vis="0.9 1" aria-hidden="true">{copy.onward}</p>
+  </div>
+</section>
+
+<style>
+  /* The shortest scene on the page. A coda is not another movement. */
+  .close {
+    /* From scenes.ts — see the note in Opening. */
+    height: calc(100svh + var(--run) * 1vh);
+  }
+
+  .close__pin {
+    --pt: calc(var(--mast-h) + clamp(8.5rem, 20vh, 12.5rem));
+    --pb: clamp(3.5rem, 10vh, 6rem);
+
+    /* The folder rises and swallows the hand. */
+    --f1: clamp(0, calc((var(--p) - 0.38) / 0.14), 1);
+    /* The hand closes and sinks behind the front panel. */
+    --f2: clamp(0, calc((var(--p) - 0.5) / 0.14), 1);
+    /* Tab, label, stamp. */
+    --f3: clamp(0, calc((var(--p) - 0.64) / 0.1), 1);
+    /* The frame pulls back and the shelf comes out. */
+    --f4: clamp(0, calc((var(--p) - 0.76) / 0.14), 1);
+    --e1: calc(var(--f1) * var(--f1) * (3 - 2 * var(--f1)));
+    --e2: calc(var(--f2) * var(--f2) * (3 - 2 * var(--f2)));
+    --e3: calc(var(--f3) * var(--f3) * (3 - 2 * var(--f3)));
+    --e4: calc(var(--f4) * var(--f4) * (3 - 2 * var(--f4)));
+
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    padding-top: var(--pt);
+    padding-bottom: var(--pb);
+    overflow: clip;
+  }
+
+  .close__stage {
+    position: relative;
+    height: 100%;
+    container-type: size;
+  }
+
+  /*
+   * One scalar again, capped on both axes. The folder is the largest object and
+   * everything else is a multiple of the same unit, so the assembly scales as
+   * one thing. Not the container itself — lesson 1.
+   */
+  .close__desk {
+    --u: min(4.2cqw, 7.5cqh, 3.6rem);
+    /* One lap is the strip each month shows of itself, so it has to be wide
+       enough to hold a date stamp with room around it. Everything on the shelf
+       is placed by whole multiples of it. */
+    --lap: calc(3.7 * var(--u));
+    position: absolute;
+    inset: 0;
+  }
+
+  /*
+   * ── THE BOARD ────────────────────────────────────────────────────────
+   *
+   * Every kraft panel in this scene — the folder's two halves, its tab, and
+   * every month on the shelf — is the same manila board, so they are all cut
+   * from one recipe. A flat fill plus a radius is a card; four cheap layers
+   * make it an object:
+   *
+   *   1. THE FOLD at the bottom. A folder is ONE sheet bent double, not two
+   *      panels glued. The bottom edge is therefore a crease, and a crease is
+   *      the one place the board is thicker and darker.
+   *   2. THE GUSSET, a crease set in from each side, which is what makes the
+   *      front panel read as the wall of a pocket rather than a rectangle.
+   *   3. THE LAMP, upper-left, the same one lighting every other shadow here.
+   *   4. FIBRE, over the top, at the same 3% the rest of the paper uses.
+   *
+   * All of it is background layers on panels that already exist. No extra
+   * elements, and it costs one paint.
+   */
+  .close__desk {
+    --board: var(--stock-kraft);
+    --board-ink: var(--stock-kraft-ink);
+    --crease: color-mix(in oklab, var(--board-ink) 18%, transparent);
+    --sheen: color-mix(in oklab, #fff 26%, transparent);
+
+    /*
+     * The thumb cut. Every kraft panel in the scene wears the same one, so the
+     * finished folder and the months behind it are demonstrably the same object
+     * — which is the argument the shelf makes. Eight points, not four: a scoop
+     * with shoulders reads as die-cut, a plain V reads as a chipped corner.
+     */
+    --thumb-notch: polygon(
+      0 0,
+      39% 0,
+      41.4% 2.4%,
+      44.5% 6.2%,
+      55.5% 6.2%,
+      58.6% 2.4%,
+      61% 0,
+      100% 0,
+      100% 100%,
+      0 100%
+    );
+
+    --kraft-face:
+      /* 1 — the fold */
+      linear-gradient(
+          0deg,
+          color-mix(in oklab, var(--board-ink) 24%, transparent) 0 1px,
+          color-mix(in oklab, var(--board-ink) 8%, transparent) 1px 45%,
+          transparent 100%
+        )
+        bottom / 100% calc(0.42 * var(--u)) no-repeat,
+      /* 2 — the gusset, left then right */
+      linear-gradient(90deg, transparent 0 62%, color-mix(in oklab, var(--board-ink) 6%, transparent) 62% calc(100% - 2px), var(--crease) calc(100% - 2px) calc(100% - 1px), var(--sheen) calc(100% - 1px) 100%)
+        left / calc(0.62 * var(--u)) 100% no-repeat,
+      linear-gradient(270deg, transparent 0 62%, color-mix(in oklab, var(--board-ink) 6%, transparent) 62% calc(100% - 2px), var(--crease) calc(100% - 2px) calc(100% - 1px), var(--sheen) calc(100% - 1px) 100%)
+        right / calc(0.62 * var(--u)) 100% no-repeat,
+      /* 3 — the lamp */
+      linear-gradient(163deg, color-mix(in oklab, #fff 13%, transparent) 0 18%, transparent 54%);
+  }
+
+  /* 4 — fibre, on a pseudo so its strength is a number and not a guess baked
+     into the fill. Same 3.2% as every other sheet on the page. */
+  .folder__back::before,
+  .folder__front::before,
+  .month__body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    background-image: var(--grain-paper);
+    opacity: 0.032;
+    pointer-events: none;
+  }
+
+  /*
+   * THE STRAP. A closed wallet is banded shut, and the band is the fastest read
+   * in the whole picture: a folder without one is open, a folder with one is
+   * finished. It is also the only saturated object in the scene, which is why
+   * the eye lands on the closed month first and then walks back down the shelf.
+   *
+   * It runs the full width and OVER both edges — the panel's clip-path cuts the
+   * overhang off flush, which is what a band wrapping round the back looks like
+   * from the front, and costs nothing.
+   *
+   * Height and position are the only two numbers here, and both are chosen to
+   * clear what is already printed: the label and its stamp end well above this,
+   * and on a shelf month the date stamp sits at 62%.
+   */
+  .folder__strap,
+  .month__strap {
+    --st-c: color-mix(in oklab, var(--brand-ink) 74%, var(--stock-kraft-ink));
+
+    position: absolute;
+    left: calc(-0.4 * var(--u));
+    right: calc(-0.4 * var(--u));
+    bottom: calc(0.78 * var(--u));
+    z-index: 2;
+    height: calc(0.3 * var(--u));
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--st-c) 62%, #fff) 0 14%,
+      var(--st-c) 32% 62%,
+      color-mix(in oklab, var(--st-c) 74%, #000) 86% 100%
+    );
+    box-shadow: 0 1px 2px rgb(0 0 0 / calc(var(--shade-a) * 0.95));
+  }
+
+  /* It snaps on with the stamp: the month is not banded until it is signed. */
+  .folder__strap {
+    opacity: var(--f3);
+  }
+
+  /* ── the shelf ────────────────────────────────────────────────────── */
+
+  /*
+   * Recentred by arithmetic, not by measurement: before the pull-back the
+   * finished month is dead centre, and after it the whole run is. The offset is
+   * half the difference between what is behind and what is in front, in laps.
+   */
+  .shelf {
+    --recentre: calc((var(--back) - var(--fwd)) * var(--lap) / 2 * var(--e4));
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    translate: calc(-50% + var(--recentre)) -50%;
+    opacity: var(--f4);
+  }
+
+  .month {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: calc(13 * var(--u));
+    height: calc(9 * var(--u));
+    translate: calc(-50% - var(--j) * var(--lap) * var(--e4)) -50%;
+    /* Deeper on the desk the further back it is — scale AND a nudge down, so a
+       row of them cannot read as a set of tabs in a control. */
+    scale: calc(1 - max(0, var(--j)) * 0.045 * var(--e4));
+    rotate: calc((var(--j) * -1.6 + 0.8) * 1deg * var(--e4));
+  }
+
+  /* Starts at the same 26% the finished folder's front panel does, so every tab
+     on the shelf sits on one line — including the one on the folder that is
+     still being closed. */
+  .month__body {
+    position: absolute;
+    inset: 26% 0 0 0;
+    border-radius: calc(0.12 * var(--u)) calc(0.12 * var(--u)) calc(0.3 * var(--u))
+      calc(0.3 * var(--u));
+    background: var(--kraft-face), var(--board);
+    box-shadow: var(--shadow-rest);
+    clip-path: var(--thumb-notch);
+  }
+
+  /*
+   * The tab is cut from the back panel, so it is the same board catching the
+   * same light — a lit top edge, a hairline round the cut, and shoulders that
+   * are rounded at the top and square where they meet the body. Those three
+   * details are the difference between a folder tab and a browser tab.
+   */
+  .month__tab,
+  .folder__tab {
+    position: absolute;
+    left: calc(0.7 * var(--u));
+    top: calc(26% - 0.78 * var(--u));
+    padding: calc(0.24 * var(--u)) calc(0.75 * var(--u)) calc(0.16 * var(--u));
+    font-family: var(--font-mono);
+    font-size: calc(0.34 * var(--u));
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--stock-kraft-ink);
+    background:
+      linear-gradient(180deg, color-mix(in oklab, #fff 16%, transparent) 0 34%, transparent 78%),
+      var(--board);
+    border-radius: calc(0.22 * var(--u)) calc(0.22 * var(--u)) 0 0;
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, #fff 55%, transparent),
+      inset 0 0 0 1px color-mix(in oklab, var(--board-ink) 11%, transparent),
+      0 calc(-0.05 * var(--u)) calc(0.24 * var(--u)) rgb(0 0 0 / calc(var(--shade-a) * 0.55));
+  }
+
+  /*
+   * The stamp is the SAME SIZE on every month, because a rubber stamp is the
+   * same object on every desk. Since each month is offset by whole multiples of
+   * one variable and the impression does not scale with its folder, the day
+   * figures land as identical glyphs, evenly spaced, on one line — geometrically
+   * rather than by adjustment. The argument of the scene is a consequence of the
+   * layout rule.
+   */
+  .month__stamp,
+  .folder__stamp {
+    display: grid;
+    justify-items: center;
+    gap: 0.15em;
+    padding: 0.3em 0.7em 0.36em;
+    font-size: clamp(0.625rem, 0.44rem + 0.42vw, 0.8125rem);
+    line-height: 1.05;
+    color: color-mix(in oklab, var(--alarm-loud) 78%, var(--paper-ink));
+    border: max(1px, 0.14em) solid currentColor;
+    border-radius: 2px;
+    rotate: -8deg;
+  }
+
+  .month__stamp b,
+  .folder__stamp b {
+    font-weight: 600;
+    letter-spacing: 0.18em;
+  }
+
+  .month__stamp i,
+  .folder__stamp i {
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+  }
+
+  /*
+   * In the strip of itself that each month actually SHOWS — not in its middle,
+   * where the folder in front of it covers the date entirely. Every finished
+   * month is overlapped from the right, so its own left edge is the part the
+   * visitor can see; the one that has not happened yet is overlapped from the
+   * left, so its date goes on the other side.
+   */
+  /*
+   * At the SAME HEIGHT as the stamp on the folder being closed — which is a
+   * fraction of the same body, so the four impressions land on one line without
+   * a measured pixel anywhere. That line is the argument of the scene: the same
+   * stamp, the same day, month after month. Break the alignment and the row
+   * turns back into four unrelated folders.
+   *
+   * Horizontally each sits in the strip its own folder actually SHOWS. A
+   * finished month is overlapped from the right, so its left edge is the part
+   * the visitor can see; the one that has not happened yet is overlapped from
+   * the left, so everything printed on it goes to the other side.
+   */
+  .month__stamp {
+    position: absolute;
+    left: calc(0.6 * var(--u));
+    top: 11%;
+    translate: 0 -50%;
+  }
+
+  .month--ghost .month__stamp,
+  .month--ghost .month__tab {
+    left: auto;
+    right: calc(0.6 * var(--u));
+  }
+
+  /* Empty, so it gets no strap and barely any weight — the one folder on the
+     shelf that has nothing in it yet is the whole point of the shelf. */
+  .month--ghost {
+    --board: color-mix(in oklab, var(--stock-kraft) 62%, var(--desk-cool));
+  }
+
+  .month--ghost .month__body {
+    box-shadow: var(--shadow-flat);
+    border: 1px dashed color-mix(in oklab, var(--stock-kraft-ink) 45%, transparent);
+  }
+
+  .month--ghost .month__stamp {
+    border-style: dashed;
+    color: color-mix(in oklab, var(--stock-kraft-ink) 58%, transparent);
+  }
+
+  .month__due {
+    position: absolute;
+    right: calc(0.6 * var(--u));
+    bottom: calc(0.7 * var(--u));
+    font-size: clamp(0.5625rem, 0.42rem + 0.36vw, 0.75rem);
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+    color: var(--stock-kraft-ink);
+  }
+
+  /* ── the folder that is being closed ──────────────────────────────── */
+
+  /*
+   * The finished month rides the shelf's own recentring, so it stays exactly
+   * where the row's front position is at every point of the pull-back.
+   */
+  .folder {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: calc(13 * var(--u));
+    height: calc(9 * var(--u));
+    z-index: 50;
+    --recentre-self: calc((var(--back) - var(--fwd)) * var(--lap) / 2 * var(--e4));
+    translate: calc(-50% + var(--recentre-self)) -50%;
+  }
+
+  .folder__back,
+  .folder__front {
+    position: absolute;
+    inset: 0;
+    /* Rounder at the fold than at the cut edges, because that is the difference
+       between a bend and a knife. */
+    border-radius: calc(0.12 * var(--u)) calc(0.12 * var(--u)) calc(0.3 * var(--u))
+      calc(0.3 * var(--u));
+    background: var(--kraft-face), var(--board);
+    /* In `u`, not a percentage: the two panels are different heights, so a
+       percentage sends them off the bottom at different speeds and the pocket
+       comes apart on the way up. */
+    translate: 0 calc((1 - var(--e1)) * 13.4 * var(--u));
+  }
+
+  /* A shade deeper than the front, so the thumb notch shows something behind it
+     rather than reading as a scratch in one flat panel. */
+  .folder__back {
+    --board: color-mix(in oklab, var(--stock-kraft) 86%, var(--stock-kraft-ink));
+    z-index: 0;
+  }
+
+  /*
+   * The front panel passes IN FRONT of the paper. No fold, no hinge, no 3D
+   * anywhere — a hand-written CSS fold is the single most likely thing on this
+   * page to look cheap, and a pocket with a thumb notch does the same job with
+   * pure z-order.
+   */
+  .folder__front {
+    z-index: 30;
+    top: 26%;
+    box-shadow:
+      0 calc(-0.06 * var(--u)) calc(0.5 * var(--u)) rgb(0 0 0 / calc(var(--shade-a) * 0.9));
+    clip-path: var(--thumb-notch);
+    /* A month in it now. */
+    scale: 1 calc(1 + var(--e2) * 0.014);
+  }
+
+  /* Shape and stock come from the shared tab rule above; this one only says
+     where it sits in the stack and when it arrives. */
+  .folder__tab {
+    z-index: 29;
+    translate: 0 calc((1 - var(--e1)) * 13.4 * var(--u));
+    opacity: var(--e3);
+  }
+
+  /* ── the label ────────────────────────────────────────────────────── */
+
+  /*
+   * THE LABEL IS PART OF THE FOLDER, AND IT ARRIVES BLANK.
+   *
+   * The first build faded a finished sticker in at the end, which left the front
+   * of the folder a bare slab of kraft for a fifth of the scene — the single
+   * dullest stretch on the page, and exactly what "make the folder more
+   * interesting" was about.
+   *
+   * A month-end file has a pre-printed form on the front: a heading, three
+   * captions, three ruled lines. That form rises WITH the folder, so there is
+   * something to read the whole way up, and closing the month is then the act of
+   * writing three numbers onto lines that were already waiting for them. Same
+   * three figures, same demotion to small print — but the picture now says what
+   * closing a month IS rather than announcing that it happened.
+   *
+   * The figures still arrive as ONE block, deliberately not sequenced: revealing
+   * them one at a time would turn the coda into a fourth analytical movement,
+   * which is precisely what this scene exists instead of.
+   */
+  .folder__label {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    top: 15%;
+    display: grid;
+    gap: calc(0.3 * var(--u));
+    padding: calc(0.55 * var(--u)) calc(0.7 * var(--u)) calc(0.62 * var(--u));
+    background:
+      linear-gradient(163deg, color-mix(in oklab, #fff 40%, transparent) 0 24%, transparent 60%),
+      var(--stock-bond);
+    color: var(--stock-bond-ink);
+    border-radius: 2px;
+    rotate: -0.7deg;
+    box-shadow:
+      var(--shadow-flat),
+      inset 0 0 0 1px color-mix(in oklab, var(--stock-bond-ink) 9%, transparent);
+  }
+
+  .folder__lead {
+    padding-bottom: calc(0.24 * var(--u));
+    border-bottom: max(1px, 0.04em) solid var(--stock-bond-rule-strong);
+    font-size: calc(0.3 * var(--u));
+    letter-spacing: 0.13em;
+    color: var(--stock-bond-quiet);
+  }
+
+  .folder__figures {
+    display: grid;
+    gap: calc(0.26 * var(--u));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Ruled, because the line is the promise: somebody is going to write on it. */
+  .folder__figures li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1em;
+    padding-bottom: calc(0.14 * var(--u));
+    border-bottom: 1px dotted var(--stock-bond-rule-strong);
+    font-size: calc(0.34 * var(--u));
+    line-height: 1.2;
+  }
+
+  .folder__figures span {
+    color: var(--stock-bond-quiet);
+  }
+
+  /* The only thing on the label that waits for the month to close. */
+  .folder__figures b {
+    font-weight: 560;
+    opacity: var(--f3);
+    translate: 0 calc((1 - var(--e3)) * 0.12 * var(--u));
+  }
+
+  /*
+   * Across the TOP corner of the form, not the bottom one: the bottom of the
+   * folder belongs to the strap, and a stamp lands on the head of a document
+   * anyway — that is where a clerk can see it without picking the file up.
+   */
+  .folder__stamp {
+    position: absolute;
+    right: calc(-0.62 * var(--u));
+    top: calc(-0.62 * var(--u));
+    background: color-mix(in oklab, var(--stock-bond) 88%, transparent);
+    scale: calc(1 + (1 - var(--e3)) * 0.7);
+    opacity: clamp(0, calc((var(--p) - 0.7) / 0.03), 1);
+  }
+
+  /* ── the five documents ───────────────────────────────────────────── */
+
+  .stack {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    /* The hand sinks behind the front panel until only the MASTHEADS show above
+       the mouth — not until it is gone. The last thing legible under the lip is
+       what each document is called, which is what makes the folder read as
+       full rather than as paper being deleted. One number moves five sheets. */
+    translate: 0 calc(var(--e2) * 17%);
+  }
+
+  .sheet-slot {
+    --f: clamp(0, calc((var(--p) - var(--d1)) / var(--dur)), 1);
+    --e: calc(var(--f) * var(--f) * (3 - 2 * var(--f)));
+    /* Off the desk mid-flight, flat before and after. */
+    --air: sin(calc(var(--f) * 180deg));
+
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: calc(6.2 * var(--u));
+    font-size: calc(0.29 * var(--u));
+
+    translate:
+      calc(
+        -50% + (var(--cx) + (var(--fx) - var(--cx)) * var(--e) + (var(--sx) - var(--fx)) *
+              var(--e2)) * var(--u)
+      )
+      calc(
+        -50% + (var(--cy) + (var(--fy) - var(--cy)) * var(--e)) * var(--u) - var(--air) * 0.5 *
+          var(--u)
+      );
+    rotate: calc(
+      (var(--crot) + (var(--frot) - var(--crot)) * var(--e) + (var(--srot) - var(--frot)) *
+          var(--e2)) * 1deg
+    );
+    scale: calc(1 + var(--air) * 0.07);
+    filter: drop-shadow(
+      0 calc((2 + var(--air) * 16) * 1px) calc((6 + var(--air) * 20) * 1px)
+        rgb(0 0 0 / calc(var(--shade-a) * (0.6 + var(--air) * 0.4)))
+    );
+  }
+
+  /* ── the next question ────────────────────────────────────────────── */
+
+  .close__onward {
+    position: absolute;
+    left: 50%;
+    bottom: clamp(0.75rem, 3vh, 2rem);
+    z-index: 60;
+    font-size: var(--fs-2xs);
+    letter-spacing: 0.14em;
+    color: var(--desk-mark);
+    white-space: nowrap;
+    translate: -50% 0;
+    pointer-events: none;
+    opacity: clamp(0, calc((var(--p) - 0.92) / 0.05), 1);
+  }
+
+  /* ── narrow ───────────────────────────────────────────────────────── */
+
+  /*
+   * The run rotates through ninety degrees. Past months tuck ABOVE as short
+   * peeking strips and the empty one sits below, so the three date stamps form
+   * a vertical column of tens — which is a stronger picture than the row, not a
+   * compromise. Every formula is unchanged; one variable moves from x to y.
+   */
+  @media (max-width: 900px) {
+    .close {
+      --run: 110;
+    }
+
+    .close__pin {
+      --pt: calc(var(--mast-h) + clamp(9rem, 22vh, 12rem));
+      --pb: clamp(4rem, 12vh, 6.5rem);
+    }
+
+    .close__desk {
+      --u: min(6.6cqw, 5.2cqh, 3rem);
+      --lap: calc(1.5 * var(--u));
+    }
+
+    .shelf {
+      translate: -50% calc(-50% + var(--recentre));
+    }
+
+    .month {
+      translate: -50% calc(-50% - var(--j) * var(--lap) * var(--e4));
+    }
+
+    .folder {
+      translate: -50% calc(-50% + var(--recentre-self));
+    }
+
+    .month__due {
+      bottom: calc(0.4 * var(--u));
+    }
+  }
+
+  /* Short: the supporting line is already dropped by BeatBand at 720, and the
+     hand has to give up its spread before the folder can rise clear of it. */
+  @media (max-height: 720px) {
+    .close__desk {
+      --u: min(3.9cqw, 6.2cqh, 3rem);
+    }
+  }
+
+  /*
+   * Without motion the coda still has to make its point: a closed, labelled,
+   * stamped folder in a row of months with one empty place already dated. The
+   * engine snaps progress rather than easing it, so all this has to remove is
+   * the lift each sheet takes as it flies — which is decoration, not argument.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .sheet-slot {
+      --air: 0;
+      scale: 1;
+    }
+
+    .month__stamp,
+    .folder__stamp,
+    .folder__label {
+      scale: 1;
+    }
+  }
+</style>

@@ -1,0 +1,40 @@
+---
+import Base from '../layouts/Base.astro';
+import Masthead from '../components/Masthead.astro';
+import Opening from '../components/Opening.astro';
+import Reconcile from '../components/Reconcile.astro';
+import Allocate from '../components/Allocate.astro';
+import Close from '../components/Close.astro';
+import Services from '../components/Services.astro';
+import Pricing from '../components/Pricing.astro';
+import Trust from '../components/Trust.astro';
+import Faq from '../components/Faq.astro';
+import Book from '../components/Book.astro';
+import Foot from '../components/Foot.astro';
+import LedgerStrip from '../components/LedgerStrip.astro';
+import StickyAsk from '../components/StickyAsk.astro';
+import { firm } from '../config/firm';
+import { hero } from '../config/content';
+---
+
+<Base title={`${firm.name} — ${firm.discipline}`} description={hero.headline} theme="light">
+  <Masthead />
+  <LedgerStrip />
+  <StickyAsk />
+  <div class="story" id="story" data-story>
+    <Opening />
+    <Reconcile />
+    <Allocate />
+    <Close />
+  </div>
+
+  <!-- Outside [data-story] on purpose: the corner read-out and every fraction
+       in ledgerStrip are measured against that element's height, and folding
+       the commercial sections into it would re-space all four of them. -->
+  <Services />
+  <Pricing />
+  <Trust />
+  <Faq />
+  <Book />
+  <Foot />
+</Base>

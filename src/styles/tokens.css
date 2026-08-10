@@ -1,0 +1,329 @@
+/*
+ * Tokens: everything that is not colour.
+ * Colour is generated at build time from the brand hex — see src/lib/palette.ts.
+ *
+ * Registered custom properties come first: the scroll engine writes numbers into
+ * `--p` and `--story-p`, and CSS can only do maths on them (calc, color-mix
+ * percentages, interpolation) if the browser knows they are <number>.
+ */
+
+@property --p {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+/* Progress through the whole document — the desk's mood. */
+@property --page-p {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+/* Progress through the story only — the value in the corner. */
+@property --story-p {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+/* 1 once the story has left the top of the screen. --story-p saturates at 1 on
+   the story's last frame and never comes back down, so it cannot tell the
+   difference between "finished" and "long gone". */
+@property --past-story {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+/*
+ * The air over the desk. Three channels of the same pointer position, each
+ * chasing it at its own rate, so a sheet can be told to answer late; --ptr-v is
+ * how hard it is moving. Registered so `calc()` treats them as numbers before
+ * the first pointer event ever lands.
+ */
+@property --ptr-x {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --ptr-y {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --ptr-x2 {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --ptr-y2 {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --ptr-x3 {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --ptr-y3 {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --ptr-v {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+/*
+ * The six numbers every animated sheet derives from --p.
+ *
+ * Registering them is not tidiness, it is the difference between a smooth scene
+ * and a slow one. An unregistered custom property is a token stream, so
+ * `--e1: calc(--f1 * --f1 * (3 - 2 * --f1))` used six times in one rule expands
+ * to eighteen copies of the whole clamp expression, re-parsed on every frame.
+ * Registered, each one computes to a single number and the rest of the rule
+ * just reads it.
+ */
+@property --f1 {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --f2 {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --e1 {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --e2 {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+/* Two more of the same pair. A scene with more than two moves in it — Allocate
+   takes three claims out of the month and then settles — needs four slots, and
+   the cost of an unregistered one is paid on every frame. */
+@property --f3 {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --e3 {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --f4 {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --e4 {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --f5 {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --e5 {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+/*
+ * The per-object pair, for a scene made of many identical things.
+ *
+ * These do NOT inherit, and that is the point: the allocation scene has forty
+ * or so bundles of paper on the desk, each with its own arrival and its own
+ * departure. An inheriting property would push every one of those numbers down
+ * into every child of every bundle for nothing. Registered so each element
+ * computes one number per frame instead of re-expanding a clamp everywhere it
+ * is read.
+ */
+@property --bf {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+@property --be {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+/* How far off the desk the sheet is right now: 0 lying flat, 1 mid-flight. */
+@property --air {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+/* 1 while the sheet still answers the air, 0 once it has joined the order. */
+@property --loose {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+:root {
+  /* ── type ──────────────────────────────────────────────────────────── */
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', 'Cascadia Mono', monospace;
+  --font-serif: 'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif;
+
+  /* Copy never goes below --fs-sm (16px). --fs-2xs is for pencil marks on the
+     desk: ornament, never information the visitor needs. */
+  --fs-2xs: 0.8125rem;
+  --fs-xs: 0.875rem;
+  --fs-sm: 1rem;
+  --fs-base: clamp(1.0625rem, 0.99rem + 0.32vw, 1.1875rem);
+  --fs-lg: clamp(1.1875rem, 1.09rem + 0.45vw, 1.375rem);
+  --fs-xl: clamp(1.375rem, 1.17rem + 0.9vw, 1.9375rem);
+  --fs-2xl: clamp(1.75rem, 1.38rem + 1.6vw, 2.625rem);
+  --fs-display: clamp(2.25rem, 1.72rem + 2.3vw, 3.375rem);
+  /* The headline in the cleared middle of the desk. It is the largest thing on
+     the page on purpose: the report is blunt that a hero image must not outweigh
+     the sentence that tells you where you are. */
+  --fs-hero: clamp(2.25rem, 1.5rem + 3.2vw, 3.875rem);
+  /*
+   * Section headings during the story.
+   *
+   * These used to top out at 36px, which put them a whisker above body copy
+   * while the paper below filled two thirds of the screen — so the scene read
+   * as an animation with a caption. It is the other way round: the sentence is
+   * the argument and the paper illustrates it. The heading now reaches 50px and
+   * the documents were scaled down to pay for it.
+   */
+  --fs-beat: clamp(1.75rem, 1.2rem + 2.35vw, 3.125rem);
+  --fs-figure: clamp(2.75rem, 1.6rem + 5.2vw, 6.5rem);
+
+  --lh-tight: 1.04;
+  --lh-snug: 1.18;
+  --lh-copy: 1.55;
+
+  --tracking-tight: -0.022em;
+  --tracking-normal: 0;
+  --tracking-caps: 0.13em;
+
+  /* ── space ─────────────────────────────────────────────────────────── */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+  --s-7: 2.75rem;
+  --s-8: 4rem;
+  --s-9: 6rem;
+  --s-10: 8rem;
+
+  --gutter: clamp(1.25rem, 0.6rem + 3vw, 4.5rem);
+  --measure: 34ch;
+  --frame: 96rem;
+  /* Height of the fixed letterhead strip. Every pinned scene pads past it. */
+  --mast-h: clamp(4.4rem, 3.95rem + 1.1vw, 5.4rem);
+
+  /* ── paper ─────────────────────────────────────────────────────────── */
+  --sheet-radius: 2px;
+  --sheet-line: 1px;
+
+  /* A single light source, upper-left, for the entire page. Every shadow on
+     every sheet is cast by it — that consistency is most of why this reads as
+     a real desk rather than a set of cards. */
+  /* All shadows scale with --shade-a, which the theme sets: one lamp in a dark
+     room throws a hard shadow, a bright room throws a soft one. */
+  --shadow-flat:
+    0 1px 2px rgb(0 0 0 / calc(var(--shade-a) * 0.76)),
+    0 4px 8px -3px rgb(0 0 0 / calc(var(--shade-a) * 0.8));
+  --shadow-rest:
+    0 2px 3px rgb(0 0 0 / calc(var(--shade-a) * 0.88)),
+    0 16px 30px -10px rgb(0 0 0 / calc(var(--shade-a) * 1.2));
+  --shadow-lift:
+    0 3px 6px rgb(0 0 0 / calc(var(--shade-a) * 0.92)),
+    0 40px 64px -18px rgb(0 0 0 / calc(var(--shade-a) * 1.44));
+
+  /* Fibre. Grey, never coloured — turbulence is RGB noise by default and it
+     turns paper green if you forget to desaturate it. */
+  --grain:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+  /* The weave of a desk mat. Two hairline grids at a 4px pitch — it reads as a
+     woven surface rather than a filled rectangle, which is most of what stops a
+     light desk from looking like an empty div. */
+  --weave:
+    repeating-linear-gradient(0deg, rgb(0 0 0 / 0.5) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0.32) 0 1px, transparent 1px 4px);
+  --grain-paper:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.15' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+
+  /* A till slip is torn off, not cut. Twelve teeth expressed in percentages so
+     the edge survives any width without recalculating anything. */
+  --slip-tear: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - 9px),
+    95.83% 100%,
+    91.67% calc(100% - 9px),
+    87.5% 100%,
+    83.33% calc(100% - 9px),
+    79.17% 100%,
+    75% calc(100% - 9px),
+    70.83% 100%,
+    66.67% calc(100% - 9px),
+    62.5% 100%,
+    58.33% calc(100% - 9px),
+    54.17% 100%,
+    50% calc(100% - 9px),
+    45.83% 100%,
+    41.67% calc(100% - 9px),
+    37.5% 100%,
+    33.33% calc(100% - 9px),
+    29.17% 100%,
+    25% calc(100% - 9px),
+    20.83% 100%,
+    16.67% calc(100% - 9px),
+    12.5% 100%,
+    8.33% calc(100% - 9px),
+    4.17% 100%,
+    0 calc(100% - 9px)
+  );
+
+  /* ── motion ────────────────────────────────────────────────────────── */
+  /* A sheet of paper is heavy and lands once. */
+  --ease-paper: cubic-bezier(0.19, 0.72, 0.21, 1);
+  /* The click of two records agreeing. Overshoots nothing, arrives hard. */
+  --ease-snap: cubic-bezier(0.13, 0.94, 0.24, 1);
+  /* A line hunting for its match — even in, even out. */
+  --ease-seek: cubic-bezier(0.42, 0, 0.58, 1);
+
+  --t-tap: 120ms;
+  --t-fast: 200ms;
+  --t-base: 340ms;
+  --t-slow: 720ms;
+  --t-settle: 1100ms;
+
+  /* ── layers ────────────────────────────────────────────────────────── */
+  --z-desk: 0;
+  --z-page: 1;
+  --z-strip: 40;
+  --z-header: 50;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-tap: 1ms;
+    --t-fast: 1ms;
+    --t-base: 1ms;
+    --t-slow: 1ms;
+    --t-settle: 1ms;
+  }
+}

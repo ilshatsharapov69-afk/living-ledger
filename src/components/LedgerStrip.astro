@@ -1,0 +1,135 @@
+---
+/**
+ * The value in the corner.
+ *
+ * This is the progress bar of the page, built out of the one thing the visitor
+ * actually cares about: how much of their money is accounted for. It resolves
+ * as they scroll — unsorted, then a total nobody has checked, then a checked
+ * total, then the part that is theirs. Nothing else on the page has to nag them
+ * to keep going.
+ */
+import { ledgerStrip } from '../config/content';
+
+const FADE = 0.04;
+const states = ledgerStrip.states;
+
+const opacityFor = (i: number) => {
+  const s = states[i]!;
+  const next = states[i + 1];
+  const fadeIn = i === 0 ? '1' : `clamp(0, calc((var(--story-p) - ${s.at}) / ${FADE}), 1)`;
+  const fadeOut = next ? `clamp(0, calc((${next.at} - var(--story-p)) / ${FADE}), 1)` : '1';
+  return `min(${fadeIn}, ${fadeOut})`;
+};
+---
+
+<aside class="strip" aria-hidden="true">
+  <span class="strip__label">{ledgerStrip.label}</span>
+  <span class="strip__slot">
+    {
+      states.map((s, i) => (
+        <span class="strip__state" data-tone={s.tone} style={`opacity:${opacityFor(i)}`}>
+          <span class="strip__value u-num">{s.value}</span>
+          {'note' in s && s.note && <span class="strip__note">{s.note}</span>}
+        </span>
+      ))
+    }
+  </span>
+</aside>
+
+<style>
+  .strip {
+    position: fixed;
+    left: var(--gutter);
+    bottom: clamp(0.75rem, 1.6vh, 1.25rem);
+    z-index: var(--z-strip);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    pointer-events: none;
+    /*
+     * Absent until the visitor starts, and not on a timer — on the first screen
+     * the corner it lives in is covered in paper, and a progress read-out that
+     * says "unsorted" before anything has happened is a label on nothing. It
+     * arrives with the first scroll, which is also the moment the paper leaves
+     * that corner.
+     */
+    --in: clamp(0, calc((var(--story-p) - 0.02) / 0.06), 1);
+    /*
+     * And it retires with the story. Past the last scene it is reporting on
+     * something that is no longer on screen, which turns a live read-out into
+     * furniture — and it would sit over the price list saying "$24,400 yours",
+     * which belongs to a worked example, not to the reader.
+     */
+    opacity: calc(var(--in) * (1 - var(--past-story)));
+    translate: 0 calc((1 - var(--in)) * 10px);
+  }
+
+  .strip__label {
+    font-family: var(--font-mono);
+    font-size: var(--fs-2xs);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--desk-ink-quiet);
+  }
+
+  .strip__slot {
+    position: relative;
+    display: block;
+    min-width: 15ch;
+    height: 1.5em;
+  }
+
+  .strip__state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    white-space: nowrap;
+  }
+
+  .strip__value {
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--desk-ink-quiet);
+  }
+
+  .strip__state[data-tone='good'] .strip__value {
+    color: var(--brand-lit);
+  }
+
+  .strip__note {
+    font-family: var(--font-mono);
+    font-size: var(--fs-2xs);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+    color: var(--desk-ink-quiet);
+  }
+
+  .strip__state[data-tone='good'] .strip__note::before {
+    content: '✓ ';
+    color: var(--brand-lit);
+  }
+
+  /* On a phone the paper reaches the bottom of the screen, so the value needs
+     to sit on something. Not a plate — a shadow, which works over any desk
+     state, warm or cool. */
+  @media (max-width: 620px) {
+    .strip {
+      left: 0;
+      right: 0;
+      bottom: 0;
+      gap: 0.4rem;
+      padding: 0.55rem var(--gutter);
+      /* Made of the desk, not of black: on the light theme a black bar would
+         have carried dark ink on a dark ground. */
+      background: color-mix(in oklab, var(--desk-cool) 86%, transparent);
+      backdrop-filter: blur(7px);
+      border-top: 1px solid var(--desk-edge);
+    }
+
+    .strip__label {
+      display: none;
+    }
+  }
+</style>

@@ -1,0 +1,352 @@
+---
+/**
+ * The foot of the page — and the last piece of the desk.
+ *
+ * WHY IT EXISTS AT ALL
+ *
+ * Until now the only way to contact this firm was a phone number in the header.
+ * The email address and the street address were both sitting in `firm.ts`
+ * unrendered. Every census angle came back with the same finding: a local
+ * service business with no address reads as a scam regardless of how good the
+ * rest of the site is, and this was the single place where the demo was
+ * measurably worse than the $90-a-month template it is sold against.
+ *
+ * It is also the first thing the accountant checks on his personalised link:
+ * is my own address right.
+ *
+ * The year is computed, never typed. One of the firms surveyed still shows
+ * ©2019 in its footer, and a demo that can rot the same way is a demo that will.
+ */
+import { firm } from '../config/firm';
+import { footer as copy, hero, licensureNote } from '../config/content';
+import FirmMark from './FirmMark.astro';
+import Social from './Social.astro';
+import { href } from '../lib/url';
+
+const year = new Date().getFullYear();
+const { contact, audience } = firm;
+const mailHref = `mailto:${contact.email}`;
+const cityLine = `${contact.city}, ${contact.state} ${contact.zip}`;
+---
+
+<footer class="foot">
+  <div class="foot__sheet sheet frame">
+    <!--
+      The letterhead again, and the last chance to be asked. The right half of
+      this row was empty in the first build, on the one sheet where a visitor
+      who has read everything and is still deciding goes looking for a way to
+      make contact — so it now carries the two things he would go looking for:
+      the firm's other addresses, and the button.
+    -->
+    <div class="foot__id">
+      <div class="foot__badge">
+        <FirmMark />
+        <div>
+          <p class="foot__name">{firm.name}</p>
+          <p class="foot__descriptor">{firm.descriptor}</p>
+        </div>
+      </div>
+
+      {
+        /* Adjacent to the firm name, at no less than the size and weight of
+           body copy — Texas 22 TAC §501.81(d). Not styling, a rule. */
+        licensureNote && <p class="foot__licensure">{licensureNote}</p>
+      }
+
+      <div class="foot__act">
+        <Social size="plate" />
+        <a class="foot__cta" href={href(firm.contact.calendarUrl)}>
+          {firm.cta.primary}
+          <svg class="foot__arrow" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M2.5 8h10M9 4.5 12.5 8 9 11.5" />
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="foot__cols">
+      <section class="foot__col">
+        <h2 class="foot__lead u-caps">{copy.reachLead}</h2>
+        <ul>
+          <li><a class="foot__link u-num" href={contact.phoneHref}>{contact.phone}</a></li>
+          <li><a class="foot__link" href={mailHref}>{contact.email}</a></li>
+          <li class="foot__plain">{contact.hours}</li>
+          {
+            contact.clientLoginUrl && (
+              <li>
+                <a class="foot__link" href={contact.clientLoginUrl}>
+                  {firm.cta.login}
+                </a>
+              </li>
+            )
+          }
+        </ul>
+      </section>
+
+      <section class="foot__col">
+        <h2 class="foot__lead u-caps">{copy.visitLead}</h2>
+        <address class="foot__address">
+          {contact.street}<br />
+          {cityLine}
+        </address>
+      </section>
+
+      <section class="foot__col">
+        <h2 class="foot__lead u-caps">{copy.servesLead}</h2>
+        <p class="foot__plain">{audience.states.join(' · ')}</p>
+        <p class="foot__plain">{audience.clientType}</p>
+      </section>
+
+      <section class="foot__col">
+        <h2 class="foot__lead u-caps">{copy.legalLead}</h2>
+        <ul>
+          {
+            copy.legal.map((l) => (
+              <li>
+                <a class="foot__link" href={href(l.href)}>
+                  {l.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+    </div>
+
+    <p class="foot__rule" aria-hidden="true"></p>
+
+    <div class="foot__base">
+      <p class="foot__copy">
+        © {year} {firm.name}. {cityLine}.
+      </p>
+      <p class="foot__built">
+        {copy.builtLine} {hero.pileCaption} — a worked example, not a client result.
+        {
+          /* Every other disclaimer on this page scopes to the figures or the
+             form. On a public URL the firm itself is the thing that needs
+             saying, once, in the smallest type on the page. Gated on the same
+             flag as the robots tag so a sold site never carries it. */
+          !firm.indexable && <> {copy.demoLine}</>
+        }
+      </p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .foot {
+    position: relative;
+    z-index: 1;
+    padding: 0 var(--gutter) clamp(1.5rem, 4vh, 2.5rem);
+  }
+
+  /*
+   * One last sheet of the firm's letterhead, lying at the bottom of the desk —
+   * the same primitive as the header strip at the top, which closes the page on
+   * the object it opened on.
+   */
+  .foot__sheet {
+    display: grid;
+    gap: clamp(1.25rem, 3vh, 2rem);
+    padding: clamp(1.5rem, 3.5vw, 2.75rem) clamp(1.25rem, 3vw, 2.5rem);
+    box-shadow: var(--shadow-rest);
+  }
+
+  .foot__sheet::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 3px;
+    border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+    background: linear-gradient(
+      color-mix(in oklab, var(--brand-solid) 34%, transparent) 0 1px,
+      var(--brand-solid) 1px 3px
+    );
+  }
+
+  /* Identity left, the ask right — and on one line whenever the sheet is wide
+     enough to hold both without either of them getting cramped. */
+  .foot__id {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    column-gap: clamp(1.5rem, 4vw, 3.5rem);
+    row-gap: clamp(1rem, 2.5vh, 1.5rem);
+  }
+
+  .foot__badge {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .foot__licensure {
+    grid-column: 1;
+  }
+
+  .foot__act {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+    display: grid;
+    justify-items: end;
+    gap: clamp(0.75rem, 2vh, 1.1rem);
+  }
+
+  /* Ghosted rather than solid: the page already has a solid stamp in the header
+     and another beside the price, and a third at full strength would compete
+     with both instead of catching the one reader who got this far. */
+  .foot__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.2rem;
+    font-size: var(--fs-sm);
+    font-weight: 580;
+    color: var(--brand-ink);
+    border: max(1px, 0.09em) solid var(--brand-ink);
+    border-radius: 3px;
+    white-space: nowrap;
+    transition:
+      color var(--t-fast),
+      background var(--t-fast);
+  }
+
+  .foot__cta:hover {
+    color: var(--brand-on-solid);
+    background: var(--brand-solid);
+  }
+
+  .foot__arrow {
+    width: 1em;
+    height: 1em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: translate var(--t-fast) var(--ease-snap);
+  }
+
+  .foot__cta:hover .foot__arrow {
+    translate: 2px 0;
+  }
+
+  .foot__name {
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--paper-ink);
+  }
+
+  .foot__descriptor {
+    margin-top: 0.15rem;
+    font-size: var(--fs-sm);
+    color: var(--paper-ink-quiet);
+  }
+
+  /*
+   * The one piece of type on this site that is forbidden from getting smaller
+   * or lighter than body copy — 1rem and 400 are exactly that. It is set in
+   * full ink rather than the quiet grey the rest of this block uses, because
+   * "no less than body copy" is about being read, not about being present.
+   */
+  .foot__licensure {
+    margin-top: 0.6rem;
+    max-width: 52ch;
+    font-size: max(var(--fs-sm), 1rem);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--paper-ink);
+    text-wrap: pretty;
+  }
+
+  .foot__built {
+    max-width: 62ch;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    color: var(--paper-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  .foot__cols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: clamp(1.25rem, 3vw, 2.5rem);
+  }
+
+  .foot__lead {
+    font-size: var(--fs-2xs);
+    color: var(--brand-ink);
+  }
+
+  .foot__col ul {
+    display: grid;
+    gap: 0.3rem;
+    margin: 0.55rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .foot__address,
+  .foot__plain {
+    margin-top: 0.55rem;
+    font-size: var(--fs-sm);
+    font-style: normal;
+    line-height: 1.5;
+    color: var(--paper-ink);
+  }
+
+  .foot__col .foot__plain + .foot__plain {
+    margin-top: 0.15rem;
+    color: var(--paper-ink-quiet);
+  }
+
+  .foot__link {
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    color: var(--paper-ink);
+    border-bottom: 1px solid transparent;
+    transition:
+      color var(--t-fast),
+      border-color var(--t-fast);
+  }
+
+  .foot__link:hover {
+    color: var(--brand-ink);
+    border-bottom-color: var(--brand-ink);
+  }
+
+  .foot__rule {
+    height: 0;
+    border-top: 1px solid var(--paper-rule);
+  }
+
+  .foot__base {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem clamp(1.5rem, 4vw, 3rem);
+  }
+
+  .foot__copy {
+    font-size: var(--fs-xs);
+    color: var(--paper-ink-quiet);
+  }
+
+  /* Nothing left to put beside the ask, so the identity block takes the width
+     back and the button goes under it. */
+  @media (max-width: 780px) {
+    .foot__id {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .foot__act {
+      grid-row: auto;
+      grid-column: 1;
+      justify-items: start;
+    }
+  }
+</style>

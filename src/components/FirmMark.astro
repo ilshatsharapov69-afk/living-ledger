@@ -1,0 +1,45 @@
+---
+/**
+ * The logo. A prospect's real file when `firm.logo.src` is set, otherwise the
+ * demo mark — drawn in the brand colour so it re-skins with everything else.
+ * Always sits on paper, so any supplied file works.
+ */
+import { firm } from '../config/firm';
+import { href } from '../lib/url';
+
+const { height } = firm.logo;
+---
+
+{
+  firm.logo.src ? (
+    <img class="mark__file" src={href(firm.logo.src)} alt={firm.logo.alt} height={height} />
+  ) : (
+    <svg
+      class="mark__demo"
+      width={height}
+      height={height}
+      viewBox="0 0 32 32"
+      role="img"
+      aria-label={firm.logo.alt}
+    >
+      <rect width="32" height="32" rx="6" fill="var(--brand-ink)" />
+      <path
+        d="M10 23V9.6l12 12.8V9"
+        fill="none"
+        stroke="var(--paper)"
+        stroke-width="2.7"
+        stroke-linecap="square"
+      />
+    </svg>
+  )
+}
+
+<style>
+  .mark__file {
+    width: auto;
+    object-fit: contain;
+  }
+  .mark__demo {
+    flex: none;
+  }
+</style>

@@ -1,0 +1,892 @@
+---
+/**
+ * Scene 2: reconciliation — the beat the whole page is built around.
+ *
+ * WHY THIS SCENE EXISTS
+ *
+ * Reconciling is most of the job and it is invisible on every accounting site
+ * ever written, because there is nothing to photograph. There is something to
+ * animate, though: a line hunting for its pair, finding one that is nearly
+ * right, and refusing it.
+ *
+ * The near miss is the argument. `TRANSFER FROM SAVINGS ····4021` is the same
+ * $12,475 to the cent as invoice #2216, and it is not a customer paying you —
+ * it is the owner moving his own money. Match on amount and the month balances
+ * while the books say revenue that never happened. A visitor who has never
+ * thought about that is exactly the visitor who needs a bookkeeper, and this is
+ * the twenty seconds that tells him so.
+ *
+ * HOW IT IS DRAWN
+ *
+ * The scan is not a moving marker. Row positions inside a document are a
+ * function of its font size and whether a row carries a second line, so any
+ * marker positioned by arithmetic would drift the moment a row changed. Instead
+ * each row owns a `--lit` window over the scene's progress and lights in turn:
+ * the same reading, with nothing to measure and nothing to break.
+ *
+ * Two greys and one green carry the meaning, and no new colour is introduced:
+ *   grey highlight   looked at
+ *   struck through   looked at and rejected
+ *   brand tint       agreed by both records
+ */
+import DocFace from './paper/DocFace.astro';
+import BeatBand from './BeatBand.astro';
+import { beats } from '../config/content';
+import { reconcile } from '../config/story';
+import { RUN } from '../config/scenes';
+
+const m = beats.match;
+
+/**
+ * When each line of the worksheet is taken in hand, and when it is settled.
+ *
+ * Timing is layout, not copy, so it lives here and the words live in
+ * content.ts. Each pair is matched to the row highlight it narrates — the
+ * worksheet must never tick a line before the paper shows it happening, and it
+ * must never lag behind either, or it reads as a caption rather than as the
+ * work.
+ *
+ * `c` is the next step's arrival. A phone has no room for a seven-line
+ * worksheet between two stacked documents, so there the lines stack in one slot
+ * and only the one currently in hand is shown; `c` is what closes its window.
+ */
+const CLOCK: [number, number][] = [
+  [0.08, 0.13],
+  [0.14, 0.19],
+  [0.2, 0.25],
+  [0.26, 0.32],
+  [0.33, 0.4],
+  [0.43, 0.5],
+  [0.53, 0.61],
+];
+
+const steps = m.work.map((w, i) => ({
+  ...w,
+  a: CLOCK[i]![0],
+  b: CLOCK[i]![1],
+  c: CLOCK[i + 1] ? CLOCK[i + 1]![0] : 0.68,
+}));
+
+/**
+ * The working, in pencil on the desk under the paper.
+ *
+ * What a bookkeeper actually leaves behind while reconciling is a margin full
+ * of scratch arithmetic — figures ticked off, one crossed out, a subtotal
+ * carried, a difference proved to nought. Nobody reads it; you register that
+ * somebody was working. So it is set faint, behind the sheets, and it is the
+ * real arithmetic of this month rather than decorative digits: every figure
+ * here appears on one of the two documents in front of it.
+ *
+ * `at` is the scene progress it gets written at, so the working accumulates in
+ * step with the search rather than arriving as a block.
+ *
+ * `y` is NOT a percentage of the frame. It is a fraction of the band left over
+ * once the chapter heading has taken what it needs at the top — the engine
+ * measures that and the stylesheet subtracts it — because a percentage of the
+ * frame put pencil figures through the supporting line under the heading on
+ * every viewport where the heading wrapped to two lines.
+ *
+ * Marks in the same column also have to be a clear LANE apart, or two of them
+ * drift into each other and print an unreadable blob. That is not a matter of
+ * taste; it happened, on the right-hand column at 1440x900. The assertion below
+ * makes it a build error rather than something to spot in a screenshot.
+ */
+const working = [
+  { t: '40,825', x: 1.5, y: 0.0, at: 0.14, ok: 0.53, d: 13, s: -4 },
+  { t: '12,475', x: 89, y: 0.0, at: 0.16, ok: 0.51, d: 15, s: -9 },
+  { t: '26,900', x: 43, y: 0.0, at: 0.18, ok: 0.57, d: 12, s: -2 },
+  { t: 'Mar 04', x: 22, y: 0.06, at: 0.2, ok: 0.53, d: 17, s: -7 },
+  { t: '4,000', x: 3, y: 0.24, at: 0.22, ok: 0.6, d: 16, s: -6 },
+  { t: 'savings?', x: 88.5, y: 0.48, at: 0.24, ok: 9, d: 14, s: -11, bad: true },
+  { t: '12,475', x: 46, y: 0.44, at: 0.26, ok: 0.51, d: 11, s: -3 },
+  { t: '26,900', x: 87.5, y: 0.24, at: 0.28, ok: 0.57, d: 12, s: -14 },
+  { t: 'Mar 18', x: 24, y: 0.52, at: 0.3, ok: 0.57, d: 15, s: -6 },
+  { t: '84,200', x: 7, y: 0.48, at: 0.32, ok: 0.62, d: 13, s: -13 },
+  { t: 'Mar 23', x: 88, y: 0.72, at: 0.34, ok: 0.51, d: 15, s: -5 },
+  { t: '12,475', x: 68, y: 0.54, at: 0.36, ok: 0.51, d: 13, s: -9 },
+  { t: '96,675', x: 1.5, y: 0.72, at: 0.38, ok: 0.62, d: 12, s: -10 },
+  { t: '4,000', x: 41, y: 0.88, at: 0.4, ok: 0.6, d: 16, s: -2 },
+  { t: '−12,475', x: 86, y: 0.96, at: 0.42, ok: 0.62, d: 16, s: -4 },
+  { t: '84,200', x: 66, y: 0.92, at: 0.44, ok: 0.62, d: 14, s: -12 },
+  { t: '=84,200', x: 4, y: 0.96, at: 0.46, ok: 0.62, d: 14, s: -8 },
+  { t: '0.00', x: 24, y: 0.98, at: 0.48, ok: 0.58, d: 12, s: -5 },
+];
+
+/*
+ * Two marks share a column if their left edges are within a sixth of the frame,
+ * which is wider than the longest figure here at the narrowest width the layer
+ * is drawn at. The lane gap has to be wider than the drift in `@keyframes rise`
+ * plus a line of type — the binding case is a 640-tall laptop, where the
+ * heading takes a third of the frame and the strip left over is barely 350px.
+ * Five lanes at 0.24 is the most that fits inside one; do not lower it without
+ * re-running `sweepWork()` at 1024x640.
+ */
+const COLUMN = 16;
+const LANE = 0.24;
+for (const a of working) {
+  for (const b of working) {
+    if (a === b) continue;
+    if (Math.abs(a.x - b.x) < COLUMN && Math.abs(a.y - b.y) < LANE) {
+      throw new Error(
+        `Reconcile — the working marks "${a.t}" (${a.x}%, ${a.y}) and "${b.t}" ` +
+          `(${b.x}%, ${b.y}) are in the same column and less than ${LANE} of a ` +
+          `lane apart. They will drift through each other and print a blob.`,
+      );
+    }
+  }
+}
+---
+
+<section class="rec" data-scene="reconcile" style={`--run:${RUN.reconcile}`}>
+  <div class="rec__pin">
+    <BeatBand beats={[{ eyebrow: m.eyebrow, heading: m.heading, line: m.line, from: 0.04 }]} />
+
+    <!--
+      THERE USED TO BE TWO PENCIL VERTICALS HERE, picking up the pair that left
+      the foot of the previous scene at the same x, so the mark would read as
+      one line across the section boundary.
+
+      It never did. What it produced was two hairlines hanging in empty desk
+      above the records, ending in mid-air, for the whole length of the approach
+      — and no amount of matching stroke width, colour and opacity fixed it,
+      because the problem was not that the two halves disagreed. The problem was
+      that a line pointing at nothing is a line pointing at nothing. Both halves
+      are gone. The scene starts on its own heading, which is what it should
+      always have done.
+    -->
+
+    <div class="rec__working u-num" data-band-clear aria-hidden="true">
+      {
+        working.map((w) => (
+          <span
+            data-bad={'bad' in w ? '' : undefined}
+            style={`left:${w.x}%;--fy:${w.y};--at:${w.at};--ok:${w.ok};--dur:${w.d}s;--delay:${w.s}s`}
+          >
+            <i>{w.t}</i>
+          </span>
+        ))
+      }
+    </div>
+
+    <div class="rec__pair">
+      <div class="rec__col rec__col--src">
+        <DocFace doc={reconcile.left} variant="list" />
+      </div>
+
+      <!--
+        The worksheet. This is the answer to "what am I actually paying for":
+        the operations, in order, ticking off against the paper either side of
+        them. It is a slip of the bookkeeper's own scratch stock, not a UI
+        panel — same shadow, same fibre, same slight lean as everything else on
+        the desk.
+      -->
+      <div class="rec__seam" aria-hidden="true">
+        <div class="work sheet sheet--fibre" data-stock="slip">
+          <p class="work__lead u-caps">{m.workLead}</p>
+          <ol class="work__list">
+            {
+              steps.map((s) => (
+                <li
+                  class="work__step"
+                  data-tone={s.tone}
+                  style={`--a:${s.a};--b:${s.b};--c:${s.c}`}
+                >
+                  <span class="work__mark">
+                    <svg viewBox="0 0 12 12">
+                      {s.tone === 'bad' ? (
+                        <path d="M3.4 3.4 L8.6 8.6 M8.6 3.4 L3.4 8.6" />
+                      ) : (
+                        <path d="M2.7 6.4 L5 8.7 L9.3 3.5" />
+                      )}
+                    </svg>
+                  </span>
+                  <span class="work__text">{s.t}</span>
+                </li>
+              ))
+            }
+          </ol>
+        </div>
+      </div>
+
+      <div class="rec__col rec__col--bank">
+        <DocFace doc={reconcile.right} variant="list" />
+      </div>
+    </div>
+
+    <div class="rec__verdict" aria-hidden="true">
+      <svg class="rec__tick" viewBox="0 0 34 34">
+        <path pathLength="1" d="M4 18.5 L13 27.5 L30 6.5"></path>
+      </svg>
+      <span class="rec__verdict-label u-caps">{m.verdictLabel}</span>
+      <span class="rec__verdict-figure u-num">{m.verdict}</span>
+      <span class="rec__verdict-note">{m.verdictNote}</span>
+    </div>
+  </div>
+</section>
+
+<style>
+  .rec {
+    /* From scenes.ts — see the note in Opening. */
+    height: calc(100svh + var(--run) * 1vh);
+  }
+
+  /*
+   * The band is absolutely positioned, so the pin reserves room for it with
+   * padding and everything else lays out in normal flow underneath. Positioning
+   * the records against a guessed band height is the kind of number that is
+   * right at 1440 and wrong everywhere else.
+   */
+  .rec__pin {
+    /* The closing move: the records are finished with, and they go. */
+    --fin: clamp(0, calc((var(--p) - 0.66) / 0.1), 1);
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    display: grid;
+    align-content: center;
+    padding-top: calc(var(--mast-h) + clamp(8.5rem, 20vh, 12.5rem));
+    padding-bottom: clamp(5.5rem, 15vh, 9rem);
+    overflow: clip;
+  }
+
+  /* ── the two records ──────────────────────────────────────────────── */
+
+  /*
+   * The working. Faint, monospaced, behind the paper — it is meant to be
+   * noticed rather than read, which is exactly how you notice that somebody has
+   * been working at a desk you walk past.
+   */
+  /*
+   * The working: figures rising off the desk while the checking happens.
+   *
+   * Two things are going on at once, and keeping them separate is what makes it
+   * readable. The RISING is ambient — a slow loop per figure, out of step with
+   * its neighbours, so the field always has something moving in it. The COLOUR
+   * is scroll: amber while a figure is still being looked at, brand green the
+   * moment its line is agreed. By the end of the scene every figure in the air
+   * is green, which is the same sentence as "difference to review, nought", told
+   * a second time without a word.
+   *
+   * `--ok` is the progress at which that figure turns. The savings transfer
+   * never does — it is set past the end of the scene on purpose, and it is the
+   * one number still amber when everything around it has gone green.
+   */
+  .rec__working {
+    /* Measured by the engine: how far the heading band reaches into this box.
+       The fallback errs high, so with no JavaScript the working starts lower
+       than it needs to rather than under the words. */
+    --lead: clamp(0px, calc(15vh - 1.5rem), 7rem);
+    /* The strip the marks are allowed to use, and where it starts. */
+    --head: calc(var(--lead) + 1.5rem);
+    --tail: 3rem;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: clip;
+    font-size: clamp(1.0625rem, 0.8rem + 0.85vw, 1.625rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    pointer-events: none;
+    user-select: none;
+    /* Out of the way when the answer takes the screen. */
+    opacity: calc(1 - var(--fin, 0));
+    /*
+     * A soft edge at each end of that strip, so a mark drifting out of it
+     * dissolves rather than being cut. The hard guarantee is the placement
+     * above — this is the last inch of it, not the mechanism.
+     */
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent var(--lead),
+      #000 var(--head),
+      #000 calc(100% - var(--tail)),
+      transparent 100%
+    );
+  }
+
+  /*
+   * Two elements, because two things own opacity here and an animation always
+   * beats a plain declaration. The outer one is the scroll — whether this figure
+   * has been reached yet, and what colour it is. The inner one is the loop.
+   */
+  .rec__working span {
+    position: absolute;
+    top: calc(var(--head) + (100% - var(--head) - var(--tail)) * var(--fy));
+    white-space: nowrap;
+    opacity: clamp(0, calc((var(--p) - var(--at)) / 0.03), 1);
+    color: color-mix(
+      in oklab,
+      var(--brand-loud) calc(clamp(0, calc((var(--p) - var(--ok)) / 0.05), 1) * 100%),
+      var(--flag-loud)
+    );
+  }
+
+  /* The one that does not come good. It goes the other way, and it is the only
+     red on the site — which is what makes it worth looking at. */
+  .rec__working span[data-bad] {
+    color: color-mix(
+      in oklab,
+      var(--alarm-loud) calc(clamp(0, calc((var(--p) - 0.36) / 0.05), 1) * 100%),
+      var(--flag-loud)
+    );
+  }
+
+  .rec__working i {
+    display: block;
+    font-style: normal;
+    animation: rise var(--dur) linear var(--delay) infinite;
+  }
+
+  /*
+   * The drift, and why it is small.
+   *
+   * It used to run 3.5rem down to 7rem up — ten and a half rem of travel across
+   * lanes that are sometimes only six rem apart, which meant two figures in the
+   * same column reliably slid through each other. Total travel here is 3.2rem;
+   * add a line of type at the largest size (about 2rem) and the pair still
+   * clears the 0.2 lane the assertion in the frontmatter enforces, down to the
+   * shortest viewport this layer is drawn on.
+   *
+   * It is also better: pencil on a desk does not float. It is written, it sits
+   * there, it stops being interesting.
+   */
+  @keyframes rise {
+    0% {
+      translate: 0 1.2rem;
+      opacity: 0;
+    }
+    18%,
+    72% {
+      opacity: 0.85;
+    }
+    100% {
+      translate: 0 -2rem;
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rec__working i {
+      animation: none;
+      opacity: 0.85;
+    }
+  }
+
+  /*
+   * At the end the two records shrink and lift off the top of the frame. They
+   * have done their job — every line on them is green — and leaving them under
+   * the answer would ask the visitor to keep reading rows he has already been
+   * shown the conclusion of. The screen empties down to one number.
+   */
+  .rec__pair {
+    position: relative;
+    z-index: 1;
+    translate: 0 calc(var(--fin) * -48%);
+    scale: calc(1 - var(--fin) * 0.52);
+    opacity: calc(1 - var(--fin) * var(--fin));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(0.75rem, 2vw, 2.25rem);
+    width: min(66rem, calc(100% - 2 * var(--gutter)));
+    margin-inline: auto;
+  }
+
+  /*
+   * The records do NOT fade in on progress, and that is the fix for the worst
+   * thing this page did: a scene's own progress is zero until its top reaches
+   * the top of the viewport, so anything gated on it is invisible for the whole
+   * approach and then appears all at once, exactly at the moment the previous
+   * scene lets go. Two hundred pixels of nothing, then a bang.
+   *
+   * They are simply visible. The sticky pin carries them up from the bottom of
+   * the screen as the section arrives, which is a real entrance made of the
+   * visitor's own scrolling, and the settle below only takes the last of the
+   * lean out of them.
+   */
+  .rec__col {
+    --settle: clamp(0, calc(var(--p) / 0.07), 1);
+    font-size: max(10.5px, min(0.94vw, 0.9375rem));
+  }
+
+  .rec__col--src {
+    translate: calc((1 - var(--settle)) * -14px) 0;
+    rotate: calc((1 - var(--settle)) * -1.4deg);
+  }
+
+  .rec__col--bank {
+    translate: calc((1 - var(--settle)) * 14px) 0;
+    rotate: calc((1 - var(--settle)) * 1.4deg);
+  }
+
+  .rec__col :global(.doc) {
+    box-shadow: var(--shadow-rest);
+  }
+
+  /* ── the scan ─────────────────────────────────────────────────────── */
+
+  /*
+   * One window per row. Written out rather than generated because the sequence
+   * IS the content: nought, then the decoy held long enough to be read and
+   * refused, then straight past the third to the one that is right.
+   */
+  .rec__col :global(.doc__row) {
+    --lit: 0;
+    --agreed: 0;
+    --struck: 0;
+    /* Where this row ends up once it has been dealt with. */
+    --tone: var(--brand-loud);
+  }
+
+  /* The line that will not survive the check. It is the only red on the site. */
+  .rec__col :global(.doc__row[data-excluded='true']) {
+    --tone: var(--alarm-loud);
+  }
+
+  .rec__col :global(.doc__row::before) {
+    content: '';
+    position: absolute;
+    inset: -0.12em -0.55em;
+    z-index: -1;
+    border-radius: 2px;
+    /* Being looked at. Amber, because "we are on this one" and "this one is
+       settled" have to be two different colours, not two shades of grey. */
+    background: color-mix(in oklab, var(--flag-loud) 26%, transparent);
+    box-shadow: inset 0 0 0 max(1px, 0.06em) color-mix(in oklab, var(--flag-loud) 60%, transparent);
+    opacity: var(--lit);
+  }
+
+  .rec__col :global(.doc__row::after) {
+    content: '';
+    position: absolute;
+    inset: -0.12em -0.55em;
+    z-index: -1;
+    border-radius: 2px;
+    /* Settled: green if the two records agree, red if the line is thrown out.
+       Mixed from the loud tokens rather than the text-contrast ones — a tint
+       built from a 4.5:1 green has no green left in it. */
+    background: color-mix(in oklab, var(--tone) 32%, transparent);
+    box-shadow: inset 0 0 0 max(1px, 0.08em) color-mix(in oklab, var(--tone) 72%, transparent);
+    opacity: max(var(--agreed), var(--struck));
+  }
+
+  /*
+   * The eye going down the column.
+   *
+   * Measured in ROWS, not pixels: the marker is exactly one row tall and moves
+   * by whole multiples of its own height, so it never has to know what a row
+   * measures — which is the thing that changes with the font size, the viewport
+   * and whether a row carries a date under it. --scan-row is the row it is on,
+   * and the three clamps are its three moves: down onto the transfer, a long
+   * pause while that one is read and refused, then past the next to the deposit
+   * that is actually right.
+   *
+   * The 20% is five rows. If the statement ever gains a line, this changes with
+   * it — which is why it is written next to the reason and not hidden in a
+   * variable.
+   */
+  .rec__col--bank {
+    --scan-row: calc(
+      clamp(0, calc((var(--p) - 0.17) / 0.03), 1) + clamp(0, calc((var(--p) - 0.44) / 0.03), 1) +
+        clamp(0, calc((var(--p) - 0.465) / 0.03), 1)
+    );
+  }
+
+  .rec__col--bank :global(.doc__rows) {
+    position: relative;
+  }
+
+  .rec__col--bank :global(.doc__rows)::after {
+    content: '';
+    position: absolute;
+    left: -0.55em;
+    right: -0.55em;
+    top: 0;
+    height: 20%;
+    border-radius: 2px;
+    box-shadow: inset 0 0 0 max(1px, 0.075em) color-mix(in oklab, var(--paper-ink) 46%, transparent);
+    translate: 0 calc(var(--scan-row) * 100%);
+    opacity: min(
+      clamp(0, calc((var(--p) - 0.13) / 0.03), 1),
+      clamp(0, calc((0.56 - var(--p)) / 0.04), 1)
+    );
+    pointer-events: none;
+  }
+
+  /* Rejected: the amount is ruled through the way you would rule it through. */
+  .rec__col :global(.doc__amount) {
+    position: relative;
+  }
+
+  .rec__col :global(.doc__amount::after) {
+    content: '';
+    position: absolute;
+    left: -0.15em;
+    right: -0.15em;
+    top: 55%;
+    height: max(1px, 0.07em);
+    background: var(--paper-ink);
+    scale: var(--struck) 1;
+    transform-origin: left;
+  }
+
+  .rec__col :global(.doc__row[data-excluded='true']) {
+    opacity: calc(1 - var(--struck) * 0.42);
+  }
+
+  /* The invoice line being chased. Lit from the moment the search starts. */
+  .rec__col--src :global(.doc__row[data-row='2']) {
+    --lit: clamp(0, calc((var(--p) - 0.12) / 0.04), 1);
+    --agreed: clamp(0, calc((var(--p) - 0.5) / 0.05), 1);
+  }
+
+  /* Down the bank column: seen, seen-and-refused, seen, agreed. */
+  .rec__col--bank :global(.doc__row[data-row='0']) {
+    --lit: min(clamp(0, calc((var(--p) - 0.17) / 0.02), 1), clamp(0, calc((0.24 - var(--p)) / 0.02), 1));
+    --agreed: clamp(0, calc((var(--p) - 0.53) / 0.035), 1);
+  }
+
+  .rec__col--bank :global(.doc__row[data-row='1']) {
+    --lit: min(clamp(0, calc((var(--p) - 0.24) / 0.02), 1), clamp(0, calc((0.44 - var(--p)) / 0.03), 1));
+    --struck: clamp(0, calc((var(--p) - 0.38) / 0.05), 1);
+  }
+
+  .rec__col--bank :global(.doc__row[data-row='2']) {
+    --lit: min(clamp(0, calc((var(--p) - 0.45) / 0.015), 1), clamp(0, calc((0.49 - var(--p)) / 0.015), 1));
+    --agreed: clamp(0, calc((var(--p) - 0.57) / 0.035), 1);
+  }
+
+  .rec__col--bank :global(.doc__row[data-row='3']) {
+    --agreed: clamp(0, calc((var(--p) - 0.5) / 0.05), 1);
+  }
+
+  .rec__col--bank :global(.doc__row[data-row='4']) {
+    --agreed: clamp(0, calc((var(--p) - 0.6) / 0.035), 1);
+  }
+
+  /* The rest of the invoice column agrees after the hard one is settled. */
+  .rec__col--src :global(.doc__row[data-row='0']) {
+    --agreed: clamp(0, calc((var(--p) - 0.53) / 0.035), 1);
+  }
+
+  .rec__col--src :global(.doc__row[data-row='1']) {
+    --agreed: clamp(0, calc((var(--p) - 0.57) / 0.035), 1);
+  }
+
+  .rec__col--src :global(.doc__row[data-row='3']) {
+    --agreed: clamp(0, calc((var(--p) - 0.6) / 0.035), 1);
+  }
+
+  /* ── the seam ─────────────────────────────────────────────────────── */
+
+  .rec__seam {
+    display: grid;
+    align-content: start;
+    padding-top: 6%;
+    width: clamp(9.5rem, 17vw, 14.5rem);
+  }
+
+  /*
+   * ── the worksheet ───────────────────────────────────────────────────
+   *
+   * Seven operations, in the order they are done, each one taken in hand and
+   * then settled. Three states and they have to be legible at a glance from
+   * two feet away, so they are carried by the MARK rather than by the type:
+   *
+   *   pending    nothing. The line is not there yet.
+   *   in hand    an open amber square, and the text at full strength.
+   *   settled    a green tick — or the one red cross this month contains —
+   *              and the text steps back to quiet.
+   *
+   * The step back is the part that makes it read as work rather than as a
+   * checklist: at any moment exactly one line is dark, and it is the one the
+   * paper either side is doing.
+   */
+  .work {
+    padding: 0.7em 0.75em 0.8em;
+    rotate: -0.6deg;
+    font-size: max(10.5px, min(0.86vw, 0.9375rem));
+    /* It arrives with the records and leaves with them. */
+    opacity: calc(clamp(0, calc(var(--p) / 0.06), 1) * (1 - var(--fin)));
+  }
+
+  .work__lead {
+    font-size: 0.82em;
+    letter-spacing: 0.14em;
+    color: var(--paper-ink-quiet);
+    padding-bottom: 0.5em;
+    border-bottom: 1px solid var(--paper-rule);
+  }
+
+  .work__list {
+    display: grid;
+    gap: 0.42em;
+    margin: 0;
+    padding: 0.6em 0 0;
+    list-style: none;
+  }
+
+  .work__step {
+    --seen: clamp(0, calc((var(--p) - var(--a)) / 0.015), 1);
+    --done: clamp(0, calc((var(--p) - var(--b)) / 0.025), 1);
+    display: grid;
+    grid-template-columns: 1.05em 1fr;
+    gap: 0.5em;
+    align-items: start;
+    line-height: 1.3;
+    opacity: var(--seen);
+  }
+
+  .work__mark {
+    position: relative;
+    width: 1.05em;
+    height: 1.05em;
+    margin-top: 0.05em;
+    border-radius: 1px;
+    /* In hand: an open amber box. */
+    box-shadow: inset 0 0 0 max(1px, 0.075em) color-mix(in oklab, var(--flag-loud) 75%, transparent);
+    background: color-mix(in oklab, var(--flag-loud) calc((1 - var(--done)) * 22%), transparent);
+  }
+
+  /* Settled: the box takes the verdict's colour. */
+  .work__mark::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 1px;
+    opacity: var(--done);
+    background: color-mix(in oklab, var(--tone) 20%, transparent);
+    box-shadow: inset 0 0 0 max(1px, 0.075em) color-mix(in oklab, var(--tone) 80%, transparent);
+  }
+
+  /* Drawn, not typed. A ✓ glyph at eleven pixels is a smudge, and these two
+     marks carry the entire verdict of the scene. */
+  .work__mark svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: var(--tone);
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: var(--done);
+  }
+
+  .work__step[data-tone='ok'] {
+    --tone: var(--brand-loud);
+  }
+
+  .work__step[data-tone='bad'] {
+    --tone: var(--alarm-loud);
+  }
+
+  .work__text {
+    font-size: 0.94em;
+    letter-spacing: -0.008em;
+    /* Dark while in hand, quiet once settled. Exactly one line is dark. */
+    color: color-mix(in oklab, var(--paper-ink-quiet) calc(var(--done) * 100%), var(--paper-ink));
+    text-wrap: pretty;
+  }
+
+  /* ── the verdict ──────────────────────────────────────────────────── */
+
+  /*
+   * The answer. A tick that gets drawn, and a nought that is the whole point of
+   * the trade: not "we found a problem" but "there is nothing left to find".
+   */
+  .rec__verdict {
+    position: absolute;
+    left: 50%;
+    top: calc(50% + var(--mast-h) / 2);
+    z-index: 2;
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: center;
+    align-items: center;
+    column-gap: clamp(0.75rem, 1.6vw, 1.5rem);
+    width: min(48rem, calc(100% - 2 * var(--gutter)));
+    text-align: left;
+    pointer-events: none;
+    --in: clamp(0, calc((var(--p) - 0.72) / 0.06), 1);
+    opacity: var(--in);
+    translate: -50% calc(-50% + (1 - var(--in)) * 16px);
+  }
+
+  .rec__tick {
+    grid-row: 1 / 4;
+    width: clamp(2.75rem, 1.6rem + 4.2vw, 5.5rem);
+    height: auto;
+    fill: none;
+    stroke: var(--brand-lit);
+    stroke-width: 3.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Drawn, in one stroke, a beat after the figure lands. */
+  .rec__tick path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: calc(1 - clamp(0, calc((var(--p) - 0.78) / 0.07), 1));
+  }
+
+  .rec__verdict-label {
+    font-size: var(--fs-2xs);
+    color: var(--desk-ink-quiet);
+  }
+
+  .rec__verdict-figure {
+    font-size: clamp(3rem, 1.7rem + 4.8vw, 6rem);
+    font-weight: 450;
+    line-height: 1;
+    letter-spacing: -0.045em;
+    color: var(--brand-lit);
+  }
+
+  .rec__verdict-note {
+    margin-top: 0.45rem;
+    font-size: var(--fs-lg);
+    color: var(--desk-ink-quiet);
+  }
+
+  /* ── narrow ───────────────────────────────────────────────────────── */
+
+  /*
+   * On a phone the two records stack, invoice above statement — which is how
+   * you would actually hold them.
+   *
+   * The invoice is cut down to the single line being chased, and that is a
+   * measurement rather than a preference: two whole documents plus a verdict
+   * come to about 800px of content in 560px of screen. Since the beat is one
+   * invoice against a column of deposits, printing the other three invoice
+   * lines costs the height and adds nothing. The bank column still turns green
+   * line by line, so "every deposit explained" is still shown, not just said.
+   */
+  @media (max-width: 860px) {
+    .rec {
+      --run: 96;
+    }
+
+    .rec__pin {
+      padding-top: calc(var(--mast-h) + clamp(10rem, 24vh, 13rem));
+      padding-bottom: clamp(7rem, 18vh, 8.5rem);
+    }
+
+    .rec__pair {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.4rem;
+      /* No sideways room to step into, and moving up would put the records
+         under the heading. Only the shrink survives here. */
+      translate: 0 0;
+      scale: calc(1 - var(--fin) * 0.04);
+    }
+
+    .rec__col {
+      font-size: max(10.5px, min(2.4vw, 0.875rem));
+    }
+
+    .rec__col--src :global(.doc__row:not([data-row='2'])),
+    .rec__col--src :global(.doc__total) {
+      display: none;
+    }
+
+    .rec__col--src {
+      translate: 0 calc((1 - var(--in)) * -22px);
+    }
+
+    .rec__col--bank {
+      translate: 0 calc((1 - var(--in)) * 22px);
+    }
+
+    /*
+     * A phone cannot carry a seven-line worksheet between two stacked
+     * documents — it would be taller than either of them. So the lines stack
+     * in one slot and only the operation currently in hand is shown: the same
+     * narration, one line at a time, which is arguably the better read anyway.
+     */
+    .rec__seam {
+      width: 100%;
+      padding-top: 0;
+      align-content: center;
+    }
+
+    .work {
+      rotate: 0deg;
+      padding: 0.5em 0.7em;
+      min-height: 3.1em;
+      display: grid;
+      align-content: center;
+      font-size: max(11px, min(3vw, 0.875rem));
+    }
+
+    .work__lead {
+      display: none;
+    }
+
+    .work__list {
+      padding-top: 0;
+    }
+
+    .work__step {
+      grid-area: 1 / 1;
+      opacity: min(
+        clamp(0, calc((var(--p) - var(--a)) / 0.012), 1),
+        clamp(0, calc((var(--c) - var(--p)) / 0.012), 1)
+      );
+    }
+
+
+
+    .rec__verdict-note {
+      display: none;
+    }
+
+    .rec__verdict-figure {
+      font-size: clamp(1.875rem, 1.1rem + 3vw, 2.75rem);
+    }
+
+    .rec__tick {
+      grid-row: 1 / 3;
+      width: clamp(1.75rem, 1.2rem + 3vw, 2.5rem);
+    }
+
+    /* The working needs margins, and a phone has none. */
+    .rec__working {
+      display: none;
+    }
+  }
+
+  /*
+   * Short phone. Even one invoice line does not fit, so the invoice goes and
+   * the seam carries it in words — "looking for $12,475 in the account" says
+   * the same thing in one line instead of a card.
+   */
+  @media (max-width: 860px) and (max-height: 720px) {
+    .rec__col--src {
+      display: none;
+    }
+
+    .rec__col {
+      font-size: max(10px, min(2.2vw, 0.8125rem));
+    }
+  }
+
+  /* Short laptop: the records shrink so the verdict keeps its room, and they
+     lift less far — there is not enough sky between them and the heading. */
+  @media (min-width: 861px) and (max-height: 810px) {
+    .rec__pair {
+      translate: 0 calc(var(--fin) * -26%);
+    }
+
+    .rec__pin {
+      padding-top: calc(var(--mast-h) + clamp(9.5rem, 23vh, 11.5rem));
+      padding-bottom: clamp(7.5rem, 21vh, 10rem);
+    }
+
+    .rec__col {
+      font-size: max(10px, min(0.92vw, 0.9375rem));
+    }
+  }
+</style>

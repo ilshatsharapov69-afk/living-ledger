@@ -1,0 +1,341 @@
+/* Reset, the desk itself, and the paper primitive. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  /* We never hijack the scroll. No smooth-scroll on the root — it fights the
+     scrub engine and takes control away from the visitor. */
+  scroll-behavior: auto;
+}
+
+body {
+  min-height: 100svh;
+  background-color: var(--desk-cool);
+  color: var(--desk-ink);
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  font-weight: 400;
+  line-height: var(--lh-copy);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/*
+ * `hidden` is a presentation hint with the specificity of a single type
+ * selector, so ANY `display` in a component beats it silently. The booking
+ * slip's reply is `display: grid`, which meant the confirmation sat under the
+ * form it was supposed to replace. If an element says it is hidden, it is.
+ */
+[hidden] {
+  display: none !important;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: var(--brand-lit);
+  color: var(--desk-cool);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-lit);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ----------------------------------------------------------------- the desk */
+
+/*
+ * Four fixed layers, none of which repaint on scroll: the warm wash and the two
+ * lamps change only opacity, the lamps move only by translate, and the vignette
+ * and grain are static. The desk can breathe for the whole length of the page
+ * without costing a frame.
+ *
+ * They follow --page-p (progress through the document), not --story-p — the
+ * room gets later as you read, whether or not the story is running.
+ */
+
+.desk {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-desk);
+  pointer-events: none;
+  overflow: hidden;
+  contain: strict;
+}
+
+.desk__warm {
+  position: absolute;
+  inset: 0;
+  background: var(--desk-warm);
+  opacity: var(--page-p);
+}
+
+.desk__lamp {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 118vmax;
+  height: 118vmax;
+  margin: -59vmax 0 0 -59vmax;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, currentColor, transparent 76%);
+  /*
+   * The light travels down the page as you read, and leans a little towards the
+   * cursor. It uses the slowest of the three pointer channels: a room does not
+   * track your hand, it notices it. Kept to a few vw so the shadows on every
+   * sheet — all cast from the upper left — never stop agreeing with it.
+   */
+  translate: calc(26vw + var(--page-p) * 32vw + var(--ptr-x3) * 3vw)
+    calc(4vh + var(--page-p) * 32vh + var(--ptr-y3) * 2.4vh);
+  will-change: transform, opacity;
+}
+
+.desk__lamp--cool {
+  color: var(--lamp-cool);
+  opacity: calc(1 - var(--page-p));
+}
+
+.desk__lamp--warm {
+  color: var(--lamp-warm);
+  opacity: var(--page-p);
+}
+
+.desk__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(140% 110% at 44% 24%, transparent 44%, var(--desk-edge) 100%);
+  opacity: 0.58;
+}
+
+.desk__weave {
+  position: absolute;
+  inset: 0;
+  background-image: var(--weave);
+  opacity: 0.075;
+}
+
+[data-theme='dark'] .desk__weave {
+  opacity: 0.03;
+}
+
+.desk__grain {
+  position: absolute;
+  inset: 0;
+  background-image: var(--grain);
+  opacity: 0.05;
+}
+
+.page {
+  position: relative;
+  z-index: var(--z-page);
+}
+
+/* ------------------------------------------------------------------- layout */
+
+.frame {
+  width: 100%;
+  max-width: var(--frame);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* -------------------------------------------------------------------- paper */
+
+/*
+ * One primitive for every sheet on the site. Anything that carries information
+ * is made of this: documents, the header strip, the folder tab, the form.
+ * It always brings its own ink — a paper background without a paired paper ink
+ * is the bug that produced nineteen inverted panels in v1.
+ */
+.sheet {
+  position: relative;
+  isolation: isolate;
+  background: var(--paper);
+  color: var(--paper-ink);
+  border-radius: var(--sheet-radius);
+  box-shadow: var(--shadow-rest);
+}
+
+/* The lit top edge is the thickness of the sheet; the hairline is its cut edge. */
+.sheet::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    inset 0 0 0 1px rgb(0 0 0 / 0.07);
+}
+
+/* Paper fibre as a 3% overlay, not a blend mode on the background — blending
+   raw turbulence into the fill is what turned the paper grey-green. */
+.sheet--fibre::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background-image: var(--grain-paper);
+  opacity: 0.032;
+  pointer-events: none;
+}
+
+.sheet--deep {
+  background-color: var(--paper-deep);
+}
+
+/*
+ * Paper stocks. A sheet does not get a different background — it gets a
+ * different PAPER, and the paper brings its ink and its rules with it. Because
+ * everything downstream reads `--paper` / `--paper-ink`, re-pointing those four
+ * variables re-papers the whole document and everything printed on it, with no
+ * chance of ink staying behind on a surface that changed.
+ */
+[data-stock='ledger'] {
+  --paper: var(--stock-ledger);
+  --paper-ink: var(--stock-ledger-ink);
+  --paper-ink-quiet: var(--stock-ledger-quiet);
+  --paper-rule: var(--stock-ledger-rule);
+  --paper-rule-strong: var(--stock-ledger-rule-strong);
+}
+
+[data-stock='tractor'] {
+  --paper: var(--stock-tractor);
+  --paper-ink: var(--stock-tractor-ink);
+  --paper-ink-quiet: var(--stock-tractor-quiet);
+  --paper-rule: var(--stock-tractor-rule);
+  --paper-rule-strong: var(--stock-tractor-rule-strong);
+}
+
+[data-stock='kraft'] {
+  --paper: var(--stock-kraft);
+  --paper-ink: var(--stock-kraft-ink);
+  --paper-ink-quiet: var(--stock-kraft-quiet);
+  --paper-rule: var(--stock-kraft-rule);
+  --paper-rule-strong: var(--stock-kraft-rule-strong);
+}
+
+[data-stock='slip'] {
+  --paper: var(--stock-slip);
+  --paper-ink: var(--stock-slip-ink);
+  --paper-ink-quiet: var(--stock-slip-quiet);
+  --paper-rule: var(--stock-slip-rule);
+  --paper-rule-strong: var(--stock-slip-rule-strong);
+}
+
+/* --------------------------------------------------------------- typography */
+
+.u-caps {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+
+.u-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.u-serif {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/*
+ * Emphasis, and the two variables that make it survive changing surface.
+ *
+ * The same sentence appears on the desk and on a sheet of paper, and those are
+ * different inks. A hard-coded colour in `.u-lift` would be right in one place
+ * and invisible in the other — which is exactly the class of bug that produced
+ * nineteen inverted panels in v1. So the SURFACE declares what "strong" and
+ * "brand" mean, and the emphasis just reads them. Re-paper an element and its
+ * emphasis re-inks with it.
+ */
+:root {
+  --ink-strong: var(--desk-ink);
+  --ink-key: var(--brand-lit);
+}
+
+.sheet,
+[data-stock] {
+  --ink-strong: var(--paper-ink);
+  --ink-key: var(--brand-ink);
+}
+
+/* The clause that carries the sentence. Weight AND contrast — weight alone
+   disappears at 17px in a variable face, colour alone reads as a link. */
+.u-lift {
+  font-weight: 560;
+  color: var(--ink-strong);
+}
+
+/* The phrase somebody repeats. One per screen. */
+.u-key {
+  font-weight: 560;
+  color: var(--ink-key);
+}
+
+/*
+ * A block the scroll has moved past. Set by the engine from `data-vis`.
+ * Visibility rather than display, so the element keeps its grid cell and its
+ * opacity animation, but stops catching clicks and stops being read out.
+ */
+.is-out {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.u-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------- reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

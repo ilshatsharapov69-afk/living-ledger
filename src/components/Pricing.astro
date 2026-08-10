@@ -1,0 +1,631 @@
+---
+/**
+ * Price — the second section of the commercial half.
+ *
+ * Three cards is the classic pattern and it stays the classic pattern, because
+ * a buyer already knows how to read one and inventing a new way to present
+ * three prices costs him effort for nothing. What changes is the material: they
+ * are sheets of the site's own paper on the site's own desk, at slight angles,
+ * with the middle one squared up and lifted — and the recommendation is a
+ * rubber stamp rather than a "Most popular" pill.
+ *
+ * `quoted: true` on a plan replaces the figure with a line, because most small
+ * firms do not publish prices and a rescin should not have to gut the section
+ * to hide them.
+ *
+ * The three terms underneath are the ones that actually decide it: how the
+ * number is arrived at, how long it holds, and how hard it is to leave. A price
+ * without those is a number nobody trusts.
+ */
+import { firm } from '../config/firm';
+import { pricing as copy } from '../config/content';
+import { understand, close as when, meta } from '../config/story';
+import { em, moneyShort } from '../lib/format';
+import { href } from '../lib/url';
+
+const plans = firm.pricing.plans;
+/* The middle one is the recommendation, so the shape survives a rescin that
+   ships two plans or four rather than three. */
+const lift = Math.floor((plans.length - 1) / 2);
+
+/*
+ * The report. Its three lines are the three questions the entire story above
+ * was built to answer — asked in story.ts, answered in story.ts, and printed
+ * here without a word of new copy. A price beside a specific object beats a
+ * price beside a list of inclusions, and this is the object.
+ */
+const report = [understand.earned, understand.cash, understand.balance].map((u) => ({
+  question: u.question,
+  plain: u.plain,
+  value: u.id === 'cash' ? `+${moneyShort(u.answer)}` : moneyShort(u.answer),
+}));
+
+/* Dated the same way the folder is: a month is shut in the month after it. */
+const sent = `${when.done[when.done.length - 1]!.closedOn} ${when.day}`;
+---
+
+<section class="pr" id="pricing" data-scene="pricing" data-scene-mode="enter" data-scene-span="1.4">
+  <div class="pr__frame frame">
+    <div class="pr__top">
+      <header class="pr__say">
+        <p class="pr__eyebrow u-caps">{copy.eyebrow}</p>
+        <h2 class="pr__heading">{copy.heading}</h2>
+        <p class="pr__line">{copy.line}</p>
+      </header>
+
+      <!--
+        The deliverable, beside the argument about how it is priced. This half of
+        the row was empty in the first build, which is a strange thing to leave
+        blank on the one screen where somebody is deciding whether to pay.
+      -->
+      <figure class="deliv">
+        <figcaption class="deliv__lead u-caps">{copy.deliverableLead}</figcaption>
+
+        <div class="deliv__sheet sheet sheet--fibre" data-stock="bond">
+          <header class="deliv__head">
+            <b class="deliv__title u-caps">{copy.deliverableTitle}</b>
+            <span class="deliv__period u-caps">{meta.period}</span>
+          </header>
+
+          <ol class="deliv__rows">
+            {
+              report.map((r, i) => (
+                <li class="deliv__row" style={`--i:${i}`}>
+                  <p class="deliv__q">{r.question}</p>
+                  <b class="deliv__a u-num">{r.value}</b>
+                  <p class="deliv__plain">{r.plain}</p>
+                </li>
+              ))
+            }
+          </ol>
+
+          <footer class="deliv__foot">
+            <span class="deliv__sent u-caps">{copy.deliverableSentLead} {sent}</span>
+            <span class="deliv__note">{copy.deliverableFoot}</span>
+          </footer>
+        </div>
+      </figure>
+    </div>
+
+    <div class="pr__plans">
+      {
+        plans.map((p, i) => (
+          <article
+            class:list={['plan', 'sheet', 'sheet--fibre', i === lift && 'plan--lift']}
+            data-stock={i === lift ? 'bond' : 'slip'}
+            style={`--i:${i};--at:${(i / Math.max(1, plans.length - 1)).toFixed(3)}`}
+          >
+            {p.stamp && <span class="plan__stamp u-caps">{p.stamp}</span>}
+
+            <h3 class="plan__name">{p.name}</h3>
+            <p class="plan__for">{p.for}</p>
+
+            <p class="plan__price">
+              {p.quoted ? (
+                <span class="plan__quoted">{copy.quotedLabel}</span>
+              ) : (
+                <>
+                  <span class="plan__figure u-num">
+                    {firm.pricing.currency}
+                    {p.price.toLocaleString('en-US')}
+                  </span>
+                  <span class="plan__period">{firm.pricing.period}</span>
+                </>
+              )}
+            </p>
+
+            <h4 class="plan__lead u-caps">{copy.includesLead}</h4>
+            <ul class="plan__list">
+              {p.includes.map((t) => (
+                <li>{t}</li>
+              ))}
+            </ul>
+
+            {p.without && (
+              <p class="plan__without">
+                <b class="u-caps">{copy.withoutLead}</b> {p.without}
+              </p>
+            )}
+          </article>
+        ))
+      }
+    </div>
+
+    <div class="pr__close">
+      <ul class="pr__terms">
+        {
+          copy.terms.map((t, i) => (
+            <li style={`--i:${i}`}>
+              <b class="u-caps">{t.q}</b>
+              <p set:html={em(t.a)} />
+            </li>
+          ))
+        }
+      </ul>
+
+      <p class="pr__act">
+        <a class="stamp-cta" href={href(firm.contact.calendarUrl)}>{copy.cta}</a>
+        <span class="pr__hint">{copy.ctaHint}</span>
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .pr {
+    position: relative;
+    z-index: 1;
+    padding-block: clamp(3rem, 8vh, 6rem) clamp(4.5rem, 12vh, 9rem);
+  }
+
+  .pr__frame {
+    display: grid;
+    gap: clamp(1.75rem, 4vh, 3rem);
+  }
+
+  /*
+   * The argument on the left, the artefact on the right. The report is the
+   * reason the second column exists: a buyer deciding on a monthly fee should
+   * be looking at the thing the fee buys, not at empty desk.
+   */
+  .pr__top {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(19rem, 0.95fr);
+    align-items: start;
+    gap: clamp(1.75rem, 4vw, 3.5rem);
+  }
+
+  .pr__say {
+    max-width: 46rem;
+    align-self: center;
+  }
+
+  .pr__eyebrow {
+    font-size: var(--fs-2xs);
+    color: var(--brand-lit);
+  }
+
+  .pr__heading {
+    margin-top: 0.4rem;
+    font-size: var(--fs-2xl);
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -0.028em;
+    color: var(--desk-ink);
+    text-wrap: balance;
+  }
+
+  .pr__line {
+    margin-top: 0.75rem;
+    max-width: 58ch;
+    font-size: var(--fs-base);
+    line-height: 1.5;
+    color: var(--desk-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  /* ── the deliverable ──────────────────────────────────────────────── */
+
+  .deliv {
+    --in: clamp(0, calc((var(--p) - 0.12) / 0.18), 1);
+    margin: 0;
+    opacity: var(--in);
+  }
+
+  .deliv__lead {
+    display: block;
+    margin-bottom: 0.7rem;
+    font-size: var(--fs-2xs);
+    color: var(--desk-ink-quiet);
+  }
+
+  /*
+   * Squared up rather than tilted like the plans below it. Everything on this
+   * desk lies at an angle except the two things that are meant to be read as
+   * documents rather than as props — this and the checklist.
+   */
+  .deliv__sheet {
+    padding: clamp(1.1rem, 2.2vw, 1.6rem) clamp(1.1rem, 2.2vw, 1.6rem) clamp(0.9rem, 1.8vw, 1.25rem);
+    rotate: 0.5deg;
+    translate: 0 calc((1 - var(--in)) * 16px);
+    box-shadow: var(--shadow-lift);
+  }
+
+  .deliv__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: max(1px, 0.1em) solid var(--paper-rule-strong);
+    font-size: var(--fs-2xs);
+    letter-spacing: 0.14em;
+  }
+
+  .deliv__title {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--paper-ink);
+  }
+
+  .deliv__period {
+    font-family: var(--font-mono);
+    color: var(--paper-ink-quiet);
+  }
+
+  .deliv__rows {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /*
+   * Question, answer, gloss — the answer set as the largest thing on the sheet
+   * because it is the only part anybody reads twice. Each row arrives a beat
+   * after the last, which is the report being written rather than appearing.
+   */
+  .deliv__row {
+    --f: clamp(0, calc((var(--p) - 0.2 - var(--i) * 0.07) / 0.1), 1);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: 1rem;
+    padding-block: clamp(0.6rem, 1.4vh, 0.85rem);
+    border-bottom: 1px dotted var(--paper-rule-strong);
+    opacity: var(--f);
+  }
+
+  .deliv__row:last-child {
+    border-bottom: 0;
+  }
+
+  .deliv__q {
+    font-size: var(--fs-sm);
+    font-weight: 560;
+    line-height: 1.35;
+    color: var(--paper-ink);
+    text-wrap: pretty;
+  }
+
+  .deliv__a {
+    font-size: clamp(1.125rem, 0.85rem + 0.85vw, 1.5rem);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--brand-ink);
+    white-space: nowrap;
+    translate: 0 calc((1 - var(--f)) * 3px);
+  }
+
+  .deliv__plain {
+    grid-column: 1 / -1;
+    margin-top: 0.25rem;
+    font-size: var(--fs-xs);
+    line-height: 1.4;
+    color: var(--paper-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  .deliv__foot {
+    display: grid;
+    gap: 0.25rem;
+    margin-top: 0.7rem;
+    padding-top: 0.7rem;
+    border-top: max(1px, 0.1em) solid var(--paper-rule-strong);
+  }
+
+  .deliv__sent {
+    font-family: var(--font-mono);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--brand-ink);
+  }
+
+  .deliv__note {
+    font-size: var(--fs-xs);
+    line-height: 1.4;
+    color: var(--paper-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  /* ── the three sheets ─────────────────────────────────────────────── */
+
+  .pr__plans {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16.5rem, 1fr));
+    align-items: start;
+    gap: clamp(1rem, 2.4vw, 1.75rem);
+  }
+
+  .plan {
+    /* Laid down left to right, each a beat after the last. Timed off the same
+       geometry as the checklist: with `enter` and span S, something D pixels
+       down the section clears the bottom of the window at p = D / (S · vh), and
+       the plans sit about 600–950px down a 1.4-viewport scene. */
+    --in: clamp(0, calc((var(--p) - 0.46 - var(--at) * 0.1) / 0.14), 1);
+    display: grid;
+    align-content: start;
+    gap: 0.5rem;
+    padding: clamp(1.25rem, 2.4vw, 1.9rem);
+    /* Paper on a desk, not a card in a UI: each sheet lands at its own angle. */
+    rotate: calc((var(--i) - 1) * 0.45deg);
+    translate: 0 calc((1 - var(--in)) * 18px);
+    opacity: var(--in);
+    box-shadow: var(--shadow-rest);
+  }
+
+  /*
+   * The recommendation. Squared up and genuinely lifted off the desk, which is
+   * what a hand does to the one it has decided on. A deeper shadow alone was
+   * not enough to read — the sheet has to be somewhere the others are not.
+   */
+  .plan--lift {
+    rotate: 0deg;
+    translate: 0 calc(-0.85rem + (1 - var(--in)) * 18px);
+    box-shadow: var(--shadow-lift);
+  }
+
+  /* A rubber stamp, not a pill. The pill is the tell of every template on the
+     internet; this page has been stamping things since the third scene. */
+  .plan__stamp {
+    position: absolute;
+    right: clamp(0.75rem, 2vw, 1.5rem);
+    top: calc(-0.75em);
+    padding: 0.2em 0.6em 0.24em;
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    color: color-mix(in oklab, var(--alarm-loud) 78%, var(--paper-ink));
+    background: var(--paper);
+    border: max(1px, 0.12em) solid currentColor;
+    border-radius: 2px;
+    rotate: -4deg;
+  }
+
+  .plan__name {
+    font-size: var(--fs-xl);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.022em;
+    color: var(--paper-ink);
+  }
+
+  .plan__for {
+    min-height: 3.4em;
+    font-size: var(--fs-sm);
+    line-height: 1.45;
+    color: var(--paper-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  .plan__price {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    margin-top: 0.35rem;
+    padding-bottom: 0.7rem;
+    border-bottom: max(1px, 0.09em) solid var(--paper-rule-strong);
+  }
+
+  .plan__figure {
+    font-size: clamp(2rem, 1.3rem + 2.2vw, 2.75rem);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--paper-ink);
+  }
+
+  .plan__period {
+    font-size: var(--fs-sm);
+    color: var(--paper-ink-quiet);
+  }
+
+  .plan__quoted {
+    font-size: var(--fs-lg);
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--paper-ink);
+  }
+
+  .plan__lead {
+    margin-top: 0.5rem;
+    font-size: var(--fs-2xs);
+    color: var(--paper-ink-quiet);
+  }
+
+  .plan__list {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .plan__list li {
+    display: grid;
+    grid-template-columns: 0.9em 1fr;
+    gap: 0.5em;
+    font-size: var(--fs-sm);
+    line-height: 1.4;
+    color: var(--paper-ink);
+    text-wrap: pretty;
+  }
+
+  .plan__list li::before {
+    content: '✓';
+    font-size: 0.85em;
+    line-height: 1.55;
+    color: var(--brand-ink);
+  }
+
+  .plan__without {
+    margin-top: 0.35rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--paper-rule);
+    font-size: var(--fs-xs);
+    line-height: 1.45;
+    color: var(--paper-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  .plan__without b {
+    font-size: 0.92em;
+    color: var(--paper-ink);
+  }
+
+  /* ── the terms, and the ask ───────────────────────────────────────── */
+
+  /*
+   * The three sentences that actually decide it. A price with no answer to
+   * "how did you get that", "how long does it hold" and "how hard is it to
+   * leave" is a number nobody believes.
+   */
+  .pr__close {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) auto;
+    align-items: center;
+    gap: clamp(1.25rem, 3vw, 3rem);
+    opacity: clamp(0, calc((var(--p) - 0.78) / 0.14), 1);
+  }
+
+  /* Same construction as the boundary panel above: a ruled-off fact with its
+     question named. Two blocks of small print on one page should be visibly
+     the same kind of statement. */
+  .pr__terms {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+    gap: clamp(0.9rem, 2.2vw, 1.75rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pr__terms li {
+    display: grid;
+    gap: 0.3rem;
+    align-content: start;
+    padding-top: 0.55rem;
+    border-top: 2px solid color-mix(in oklab, var(--desk-mark) 70%, transparent);
+  }
+
+  .pr__terms b {
+    font-size: var(--fs-2xs);
+    color: var(--desk-ink);
+  }
+
+  .pr__terms p {
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    color: var(--desk-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  .pr__act {
+    display: grid;
+    justify-items: center;
+    gap: 0.6rem;
+  }
+
+  /* The same stamp the hero uses, so the two asks are recognisably one object. */
+  .stamp-cta {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    padding: 1rem 2.1rem;
+    background: var(--brand-solid);
+    color: var(--brand-on-solid);
+    font-size: var(--fs-base);
+    font-weight: 580;
+    border-radius: 3px;
+    rotate: -1.1deg;
+    box-shadow: var(--shadow-rest);
+    transition:
+      rotate var(--t-base) var(--ease-paper),
+      translate var(--t-fast) var(--ease-snap),
+      box-shadow var(--t-fast) var(--ease-snap);
+  }
+
+  .stamp-cta::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid color-mix(in oklab, var(--brand-on-solid) 42%, transparent);
+    border-radius: 1px;
+  }
+
+  .stamp-cta:hover {
+    rotate: 0deg;
+    translate: 0 -2px;
+    box-shadow: var(--shadow-lift);
+  }
+
+  .stamp-cta:active {
+    translate: 0 1px;
+    box-shadow: var(--shadow-flat);
+  }
+
+  .pr__hint {
+    font-size: var(--fs-sm);
+    color: var(--desk-ink-quiet);
+  }
+
+  /* Below this the report has nowhere to sit beside the argument, so it goes
+     under it — still above the plans, which is the order that matters. */
+  @media (max-width: 940px) {
+    .pr__top {
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(1.5rem, 4vh, 2.25rem);
+    }
+
+    .deliv__sheet {
+      max-width: 32rem;
+    }
+  }
+
+  @media (max-width: 780px) {
+    .pr__close {
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: start;
+    }
+
+    .pr__act {
+      justify-items: start;
+    }
+  }
+
+  /* Below this the cards stack, and stacked paper at an angle reads as a pile
+     rather than as three things to compare. */
+  @media (max-width: 620px) {
+    .plan {
+      rotate: 0deg;
+    }
+
+    /* Stacked, the lift has nothing to lift away from and only pulls the sheet
+       into the one above it. */
+    .plan--lift {
+      translate: 0 calc((1 - var(--in)) * 18px);
+    }
+
+    /*
+     * And the stamp comes inside. Struck over the top edge it lands in the gap
+     * between two stacked sheets and reads as belonging to neither.
+     */
+    .plan__stamp {
+      position: static;
+      justify-self: end;
+      margin-bottom: -0.1rem;
+    }
+
+    .plan__for {
+      min-height: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .plan {
+      translate: none;
+    }
+  }
+</style>

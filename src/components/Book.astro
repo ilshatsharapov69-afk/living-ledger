@@ -1,0 +1,502 @@
+---
+/**
+ * The ask. The last frame of the document, and the destination every "Book a
+ * fit call" on the page points at.
+ *
+ * WHY THIS SECTION IS THE MOST IMPORTANT ONE LEFT
+ *
+ * Before it existed, all three CTAs pointed at `#book`, which was not in the
+ * codebase. On a page whose entire thesis is that everything responds, the one
+ * button a visitor is most likely to press did nothing. That is not a content
+ * gap, it is a broken product — and the accountant evaluating the demo is
+ * exactly the person who presses it.
+ *
+ * WHAT IS DIFFERENT ABOUT IT
+ *
+ * The call produces an artefact. Twelve of the eighteen firms surveyed offer a
+ * "free consultation"; a consultation is a conversation and nobody schedules a
+ * conversation. A one-page note on last month's books is a thing, it is worth
+ * having whether or not you hire anybody, and it costs the firm an hour.
+ *
+ * The three steps are here rather than in a "how it works" section of their
+ * own, because the doubt they answer — what happens if I click — occurs at the
+ * button and nowhere else.
+ *
+ * THE FORM IS INERT, AND IT STILL HAS TO ANSWER
+ *
+ * Nothing is sent: this is a demo, and CONTENT.md says so. But a submit that
+ * vanishes in silence is the same broken promise as the dead button we are
+ * fixing. So the slip takes a RECEIVED stamp and turns into its own reply.
+ *
+ * The fields are name, email, phone, company, message, and they must never
+ * grow. A document upload or a tax identifier would inherit the FTC Safeguards
+ * Rule and IRS Pub 1345 — obligations this page is not built for and must not
+ * quietly acquire on a sold site.
+ */
+import { firm } from '../config/firm';
+import { book as copy } from '../config/content';
+---
+
+<section class="bk" id="book" data-scene="book" data-scene-mode="enter" data-scene-span="0.9">
+  <div class="bk__frame frame">
+    <div class="bk__say">
+      <p class="bk__eyebrow u-caps">{copy.eyebrow}</p>
+      <h2 class="bk__heading">{copy.heading}</h2>
+      <p class="bk__line">{copy.line}</p>
+
+      <!--
+        A schedule, not three paragraphs. The numbers are strung on one rail so
+        the eye reads them as a sequence with an end, and each carries what it
+        costs the reader in time — which is the only thing anybody standing at a
+        contact form actually wants to know.
+      -->
+      <ol class="bk__steps">
+        {
+          copy.steps.map((s, i) => (
+            <li class="step" style={`--at:${i}`}>
+              <span class="step__n u-num">{i + 1}</span>
+              <div class="step__body">
+                <h3 class="step__name">
+                  {s.name}
+                  <span class="step__when u-caps">{s.when}</span>
+                </h3>
+                <p class="step__text">{s.text}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ol>
+
+      <p class="bk__or">
+        {copy.orCall}
+        <a class="bk__phone u-num" href={firm.contact.phoneHref}>{firm.contact.phone}</a>
+      </p>
+    </div>
+
+    <!--
+      A request slip on the firm's own paper, not a UI panel. `.sheet` is the
+      same primitive every document in the story is made of, so the form belongs
+      to the desk rather than arriving from a component library.
+    -->
+    <div class="bk__slip sheet sheet--fibre" data-stock="bond" data-sent="false">
+      <form class="slip__form" novalidate>
+        <header class="slip__head">
+          <h3 class="slip__title">{copy.formTitle}</h3>
+          <p class="slip__meta">{copy.formMeta}</p>
+        </header>
+
+        <label class="field">
+          <span class="field__label">{copy.fields.name}</span>
+          <input class="field__input" type="text" name="name" autocomplete="name" required />
+        </label>
+
+        <div class="field-pair">
+          <label class="field">
+            <span class="field__label">{copy.fields.email}</span>
+            <input class="field__input" type="email" name="email" autocomplete="email" required />
+          </label>
+          <label class="field">
+            <span class="field__label">{copy.fields.phone}</span>
+            <input class="field__input" type="tel" name="phone" autocomplete="tel" />
+          </label>
+        </div>
+
+        <label class="field">
+          <span class="field__label">{copy.fields.company}</span>
+          <input class="field__input" type="text" name="company" autocomplete="organization" />
+        </label>
+
+        <label class="field">
+          <span class="field__label">{copy.fields.message}</span>
+          <textarea class="field__input field__input--area" name="message" rows="3"></textarea>
+          <span class="field__hint">{copy.fields.messageHint}</span>
+        </label>
+
+        <button class="slip__send" type="submit">{copy.send}</button>
+        <p class="slip__demo">{copy.demoNote}</p>
+      </form>
+
+      <!--
+        The reply. Same sheet, so the slip becomes the answer rather than being
+        replaced by a different object.
+      -->
+      <div class="slip__sent" hidden>
+        <span class="slip__stamp u-caps">{copy.sentStamp}</span>
+        <h3 class="slip__sent-heading">{copy.sentHeading}</h3>
+        <p class="slip__sent-line">{copy.sentLine}</p>
+        <p class="slip__demo">{copy.demoNote}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  /*
+   * Nothing is sent. The only job here is that pressing the button visibly does
+   * something — the demo's honesty label under it says as much, and a silent
+   * submit would be the same failure as the dead anchor this section replaces.
+   *
+   * `hidden` is toggled rather than a class, so the reply is genuinely out of
+   * the accessibility tree until it exists, and focus is moved to it so a
+   * keyboard or screen-reader visitor is told the state changed.
+   */
+  for (const slip of document.querySelectorAll<HTMLElement>('[data-sent]')) {
+    const form = slip.querySelector('form');
+    const sent = slip.querySelector<HTMLElement>('.slip__sent');
+    if (!form || !sent) continue;
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!form.reportValidity()) return;
+      form.hidden = true;
+      sent.hidden = false;
+      slip.dataset.sent = 'true';
+      sent.setAttribute('tabindex', '-1');
+      sent.focus({ preventScroll: true });
+    });
+  }
+</script>
+
+<style>
+  .bk {
+    position: relative;
+    z-index: 1;
+    padding-block: clamp(3rem, 8vh, 6rem) clamp(4.5rem, 12vh, 8rem);
+  }
+
+  .bk__frame {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    align-items: start;
+    gap: clamp(1.75rem, 4vw, 4rem);
+  }
+
+  /* ── the argument ─────────────────────────────────────────────────── */
+
+  .bk__eyebrow {
+    font-size: var(--fs-2xs);
+    color: var(--brand-lit);
+  }
+
+  .bk__heading {
+    margin-top: 0.4rem;
+    max-width: 20ch;
+    font-size: var(--fs-2xl);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.028em;
+    color: var(--desk-ink);
+    text-wrap: balance;
+  }
+
+  .bk__line {
+    margin-top: 0.75rem;
+    max-width: 52ch;
+    font-size: var(--fs-base);
+    line-height: 1.5;
+    color: var(--desk-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  .bk__steps {
+    display: grid;
+    gap: clamp(0.9rem, 2vh, 1.4rem);
+    margin-top: clamp(1.5rem, 3.5vh, 2.5rem);
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+  }
+
+  .step {
+    --in: clamp(0, calc((var(--p) - 0.08 - var(--at) * 0.09) / 0.16), 1);
+    position: relative;
+    display: grid;
+    grid-template-columns: 2.4rem minmax(0, 1fr);
+    gap: 0.9rem;
+    align-items: start;
+    padding-bottom: clamp(0.9rem, 2vh, 1.4rem);
+    opacity: var(--in);
+    translate: 0 calc((1 - var(--in)) * 10px);
+  }
+
+  /*
+   * The rail. One line down the left, drawn from the bottom of each disc to the
+   * top of the next, so the three steps are a sequence with an end rather than
+   * three paragraphs that happen to be numbered. It grows with its own step,
+   * which is what makes the group read as filling in.
+   */
+  .step:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 1.2rem;
+    top: 2.4rem;
+    bottom: 0.2rem;
+    width: 1px;
+    background: color-mix(in oklab, var(--brand-ink) 40%, transparent);
+    scale: 1 var(--in);
+    transform-origin: 50% 0;
+  }
+
+  .step:last-child {
+    padding-bottom: 0;
+  }
+
+  /* Filled, not ruled: on a page this quiet three brand discs are the only
+     thing that makes the sequence findable at a glance. */
+  .step__n {
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--brand-on-solid);
+    background: var(--brand-solid);
+    border-radius: 50%;
+    box-shadow: var(--shadow-flat);
+  }
+
+  .step__body {
+    padding-top: 0.25rem;
+  }
+
+  .step__name {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 0.75rem;
+    font-size: var(--fs-base);
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.014em;
+    color: var(--desk-ink);
+  }
+
+  /* What it costs the reader, in the only currency that matters here. */
+  .step__when {
+    padding: 0.24em 0.6em 0.28em;
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    color: var(--brand-ink);
+    background: var(--brand-tint);
+    border-radius: 2px;
+  }
+
+  .step__text {
+    margin-top: 0.2rem;
+    max-width: 56ch;
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    color: var(--desk-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  .bk__or {
+    margin-top: clamp(1.25rem, 3vh, 2rem);
+    font-size: var(--fs-sm);
+    color: var(--desk-ink-quiet);
+  }
+
+  .bk__phone {
+    margin-left: 0.4em;
+    font-weight: 500;
+    color: var(--desk-ink);
+    border-bottom: 1px solid var(--desk-mark);
+    transition: color var(--t-fast);
+  }
+
+  .bk__phone:hover {
+    color: var(--brand-lit);
+  }
+
+  /* ── the slip ─────────────────────────────────────────────────────── */
+
+  .bk__slip {
+    --in: clamp(0, calc((var(--p) - 0.06) / 0.2), 1);
+    padding: clamp(1.25rem, 2.6vw, 2rem);
+    rotate: 0.4deg;
+    box-shadow: var(--shadow-rest);
+    translate: 0 calc((1 - var(--in)) * 20px);
+    opacity: var(--in);
+  }
+
+  .slip__head {
+    padding-bottom: 0.8rem;
+    margin-bottom: 1rem;
+    border-bottom: max(1px, 0.09em) solid var(--paper-rule-strong);
+  }
+
+  .slip__title {
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--paper-ink);
+  }
+
+  .slip__meta {
+    margin-top: 0.3rem;
+    font-size: var(--fs-xs);
+    color: var(--paper-ink-quiet);
+  }
+
+  .slip__form {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .field {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .field-pair {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 0.85rem;
+  }
+
+  .field__label {
+    font-family: var(--font-mono);
+    font-size: var(--fs-2xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--paper-ink-quiet);
+  }
+
+  /*
+   * A ruled line to write on, not a boxed input. A rounded grey field is the
+   * one element that would drag the whole page back to looking like every other
+   * template — and a form printed on a slip has ruled lines.
+   */
+  .field__input {
+    width: 100%;
+    padding: 0.35rem 0.1rem 0.4rem;
+    font: inherit;
+    font-size: var(--fs-sm);
+    color: var(--paper-ink);
+    background: transparent;
+    border: 0;
+    border-bottom: max(1px, 0.075em) solid var(--paper-rule-strong);
+    border-radius: 0;
+    transition: border-color var(--t-fast);
+  }
+
+  .field__input:focus {
+    outline: none;
+    border-bottom-color: var(--brand-ink);
+  }
+
+  /* The focus ring the reset gives everything else would be a rounded rectangle
+     round a line; the line itself thickening is the same information. */
+  .field__input:focus-visible {
+    outline: none;
+    box-shadow: 0 1px 0 0 var(--brand-ink);
+  }
+
+  .field__input--area {
+    resize: vertical;
+    min-height: 3.2em;
+    line-height: 1.45;
+  }
+
+  .field__hint {
+    font-size: var(--fs-xs);
+    line-height: 1.35;
+    color: var(--paper-ink-quiet);
+  }
+
+  .slip__send {
+    justify-self: start;
+    margin-top: 0.3rem;
+    padding: 0.85rem 1.9rem;
+    font-size: var(--fs-base);
+    font-weight: 580;
+    color: var(--brand-on-solid);
+    background: var(--brand-solid);
+    border-radius: 3px;
+    rotate: -0.8deg;
+    box-shadow: var(--shadow-flat);
+    transition:
+      rotate var(--t-base) var(--ease-paper),
+      translate var(--t-fast) var(--ease-snap),
+      box-shadow var(--t-fast) var(--ease-snap);
+  }
+
+  .slip__send:hover {
+    rotate: 0deg;
+    translate: 0 -2px;
+    box-shadow: var(--shadow-rest);
+  }
+
+  .slip__send:active {
+    translate: 0 1px;
+    box-shadow: none;
+  }
+
+  .slip__demo {
+    font-size: var(--fs-xs);
+    color: var(--paper-ink-quiet);
+  }
+
+  /* ── the reply ────────────────────────────────────────────────────── */
+
+  .slip__sent {
+    display: grid;
+    justify-items: start;
+    gap: 0.5rem;
+    padding-block: clamp(0.5rem, 2vh, 1.5rem);
+  }
+
+  .slip__sent:focus {
+    outline: none;
+  }
+
+  /* The same rubber stamp the story has been using since scene three. */
+  .slip__stamp {
+    padding: 0.24em 0.7em 0.28em;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    color: color-mix(in oklab, var(--brand-ink) 88%, transparent);
+    border: max(1px, 0.13em) solid currentColor;
+    border-radius: 2px;
+    rotate: -6deg;
+  }
+
+  .slip__sent-heading {
+    margin-top: 0.4rem;
+    font-size: var(--fs-xl);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--paper-ink);
+  }
+
+  .slip__sent-line {
+    max-width: 40ch;
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    color: var(--paper-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  /* ── narrow ───────────────────────────────────────────────────────── */
+
+  @media (max-width: 900px) {
+    .bk__frame {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .bk__slip {
+      rotate: 0deg;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bk__slip,
+    .step {
+      translate: none;
+    }
+  }
+</style>

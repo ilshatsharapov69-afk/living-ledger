@@ -1,0 +1,284 @@
+---
+/**
+ * The objections — a folder of index cards that open.
+ *
+ * WHY THIS BLOCK EARNS ITS SPACE
+ *
+ * It is the highest proof-per-pixel section left on the page, because it is the
+ * one a template vendor structurally cannot copy. Their FAQ has to work for
+ * dentists as well as contractors, so it can never say G702, WH-347 or "the
+ * Texas COGS subtraction". A visitor who runs a framing crew reads three lines
+ * of this and knows whether the person behind the site has done the job.
+ *
+ * It is also the section that most reliably separates a finished site from an
+ * unfinished one: of the firms surveyed, one is running Lorem ipsum in a live
+ * FAQ, on a paid site, next to five calls to action.
+ *
+ * HOW IT IS BUILT, AND WHAT IS DELIBERATELY NOT ANIMATED
+ *
+ * Native `<details>`, which brings keyboard operation, the accessibility tree
+ * and find-in-page for free — all three of which a hand-rolled accordion loses
+ * and nobody notices until somebody tabs through the page.
+ *
+ * The opening is NOT animated. Height transitions on `<details>` need either a
+ * measurement pass or `::details-content`, which is too new to rely on; both
+ * fail visibly when they fail. On a page whose animation budget is spent on the
+ * story, an accordion that opens instantly and never janks is the right trade —
+ * the brief is explicit that from the commercial half down, animation
+ * supplements rather than carries.
+ */
+import { firm } from '../config/firm';
+import { faq as copy } from '../config/content';
+---
+
+<section class="faq" id="faq" data-scene="faq" data-scene-mode="enter" data-scene-span="0.9">
+  <div class="faq__frame frame">
+    <header class="faq__say">
+      <p class="faq__eyebrow u-caps">{copy.eyebrow}</p>
+      <h2 class="faq__heading">{copy.heading}</h2>
+      <p class="faq__line">{copy.line}</p>
+    </header>
+
+    <!-- An open folder with the cards standing in it. -->
+    <div class="faq__folder">
+      <span class="faq__tab u-caps" aria-hidden="true">{copy.tab}</span>
+
+      <!--
+        `name` makes these an exclusive accordion natively: opening one closes
+        the last. With six answers of this length that is not a preference, it
+        is what stops the page growing by two screens under the reader's thumb.
+        In a browser that does not support it they simply all open, which is the
+        old behaviour rather than a broken one.
+      -->
+      <div class="faq__cards">
+        {
+          firm.faq.map((item, i) => (
+            <details class="qa sheet sheet--fibre" data-stock="bond" name="faq" style={`--i:${i}`}>
+              <summary class="qa__q">
+                <b class="qa__no u-num">{String(i + 1).padStart(2, '0')}</b>
+                <span class="qa__text">{item.q}</span>
+                <span class="qa__mark" aria-hidden="true" />
+              </summary>
+              <p class="qa__a">{item.a}</p>
+            </details>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq {
+    position: relative;
+    z-index: 1;
+    padding-block: clamp(3rem, 8vh, 6rem);
+  }
+
+  .faq__frame {
+    display: grid;
+    gap: clamp(1.75rem, 4vh, 3rem);
+  }
+
+  .faq__say {
+    max-width: 46rem;
+  }
+
+  .faq__eyebrow {
+    font-size: var(--fs-2xs);
+    color: var(--brand-lit);
+  }
+
+  .faq__heading {
+    margin-top: 0.4rem;
+    font-size: var(--fs-2xl);
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -0.028em;
+    color: var(--desk-ink);
+    text-wrap: balance;
+  }
+
+  .faq__line {
+    margin-top: 0.75rem;
+    max-width: 58ch;
+    font-size: var(--fs-base);
+    line-height: 1.5;
+    color: var(--desk-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  /* ── the folder ───────────────────────────────────────────────────── */
+
+  /*
+   * Kraft, with a tab, holding the cards. The same object the month was filed
+   * into two sections ago — which is the whole reason the questions are cards
+   * rather than rows of an accordion.
+   */
+  .faq__folder {
+    --in: clamp(0, calc((var(--p) - 0.05) / 0.2), 1);
+    position: relative;
+    padding: clamp(1rem, 2.4vw, 1.75rem);
+    background: var(--stock-kraft);
+    border-radius: calc(0.2rem);
+    box-shadow: var(--shadow-rest);
+    opacity: var(--in);
+    translate: 0 calc((1 - var(--in)) * 18px);
+  }
+
+  .faq__tab {
+    position: absolute;
+    left: clamp(1rem, 2.4vw, 1.75rem);
+    bottom: 100%;
+    padding: 0.4em 1.1em 0.3em;
+    font-size: var(--fs-2xs);
+    color: var(--stock-kraft-ink);
+    background: var(--stock-kraft);
+    border-radius: 3px 3px 0 0;
+    box-shadow: 0 -1px 2px rgb(0 0 0 / calc(var(--shade-a) * 0.5));
+  }
+
+  .faq__cards {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  /* ── a card ───────────────────────────────────────────────────────── */
+
+  /*
+   * A card in a folder, and it behaves like one: shut it lies flat, open it is
+   * the one pulled forward — deeper shadow, a brand rule down the spine, and a
+   * couple of pixels of lift. Hover gives the same hint at a tenth of the
+   * strength, so the whole stack reads as touchable without anything moving.
+   */
+  .qa {
+    --edge: transparent;
+    padding: clamp(0.85rem, 1.8vw, 1.15rem) clamp(1rem, 2vw, 1.4rem);
+    border-left: 3px solid var(--edge);
+    box-shadow: var(--shadow-flat);
+    transition:
+      box-shadow var(--t-fast) var(--ease-snap),
+      translate var(--t-fast) var(--ease-snap),
+      border-color var(--t-fast);
+  }
+
+  .qa:hover {
+    --edge: color-mix(in oklab, var(--brand-ink) 40%, transparent);
+    translate: 0 -1px;
+  }
+
+  .qa[open] {
+    --edge: var(--brand-ink);
+    translate: 0 -2px;
+    box-shadow: var(--shadow-rest);
+  }
+
+  .qa__q {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 0.9rem;
+    font-size: var(--fs-base);
+    font-weight: 550;
+    line-height: 1.35;
+    letter-spacing: -0.014em;
+    color: var(--paper-ink);
+    cursor: pointer;
+    list-style: none;
+    text-wrap: pretty;
+  }
+
+  /* Index cards are numbered. It also gives the eye a rail down the left, which
+     is the thing six identical white slabs were missing. */
+  .qa__no {
+    font-size: var(--fs-xs);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: color-mix(in oklab, var(--brand-ink) 55%, var(--paper));
+  }
+
+  .qa[open] .qa__no {
+    color: var(--brand-ink);
+  }
+
+  /* Safari still paints its own triangle without this. */
+  .qa__q::-webkit-details-marker {
+    display: none;
+  }
+
+  .qa__q:focus-visible {
+    outline: 2px solid var(--brand-ink);
+    outline-offset: 4px;
+    border-radius: 2px;
+  }
+
+  /*
+   * A cross that becomes a minus, sitting in a shallow well so it reads as a
+   * control rather than as punctuation. The vertical stroke is dropped rather
+   * than rotated: rotating a 1px rule through 90° samples badly at every angle
+   * in between, and the whole gesture is over in 140ms anyway.
+   */
+  .qa__mark {
+    position: relative;
+    flex: none;
+    width: 1.6em;
+    height: 1.6em;
+    translate: 0 0.28em;
+    border-radius: 50%;
+    background: color-mix(in oklab, var(--brand-ink) 8%, transparent);
+    transition: background var(--t-fast);
+  }
+
+  .qa:hover .qa__mark,
+  .qa[open] .qa__mark {
+    background: color-mix(in oklab, var(--brand-ink) 15%, transparent);
+  }
+
+  .qa__mark::before,
+  .qa__mark::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    background: var(--brand-ink);
+    transition: opacity var(--t-fast);
+  }
+
+  .qa__mark::before {
+    width: 0.7em;
+    height: max(1.5px, 0.1em);
+  }
+
+  .qa__mark::after {
+    width: max(1.5px, 0.1em);
+    height: 0.7em;
+  }
+
+  .qa[open] .qa__mark::after {
+    opacity: 0;
+  }
+
+  .qa[open] .qa__text {
+    color: var(--brand-ink);
+  }
+
+  .qa__a {
+    margin-top: 0.7rem;
+    /* Under the question, not under the number — the answer belongs to the
+       words, and lining it up with the index would break the left rail. */
+    margin-left: calc(var(--fs-xs) * 2 + 0.9rem);
+    padding-top: 0.7rem;
+    max-width: 74ch;
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+    color: var(--paper-ink-quiet);
+    border-top: 1px solid var(--paper-rule);
+    text-wrap: pretty;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .faq__folder {
+      translate: none;
+    }
+  }
+</style>

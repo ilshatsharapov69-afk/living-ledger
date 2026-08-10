@@ -1,0 +1,1334 @@
+---
+/**
+ * Scene 3: allocation — how much of a verified month is actually yours.
+ *
+ * WHY THIS SCENE EXISTS
+ *
+ * The previous two scenes prove the month is real. This one is the reason
+ * anybody pays for that. Every owner of a small business has looked at a bank
+ * balance and quietly assumed some part of it was profit; payroll is owed, the
+ * costs are already gone, and the sales tax in the account belongs to the
+ * state. The figure that survives all three is the only one anybody can act on.
+ *
+ * WHY IT IS NOT A BAR
+ *
+ * The first build of this scene divided one strip into four proportional
+ * segments, and it read as a segmented control — a chart printed on paper is
+ * still a chart. What makes something a chart is not its texture; it is the
+ * proportional subdivision of ONE SHARED RECTANGLE. No amount of paper stock,
+ * ragged edges or hand-drawn rules touches that.
+ *
+ * So the month is not a rectangle here. It is forty-two discrete strapped
+ * bundles poured out across the desk, and the structural move that makes the
+ * chart reading impossible rather than merely unlikely:
+ *
+ *   BUCKET MEMBERSHIP IS SCATTERED THROUGH THE SPREAD, NEVER CONTIGUOUS.
+ *
+ * No claim ever occupies a region. There is no progress value at which a
+ * proportional area exists on screen. When payroll is taken, the spread
+ * develops HOLES, not a missing block — and the holes never close, because a
+ * spread full of holes is exactly what "already spent" looks like.
+ *
+ * NO DENOMINATION IS PRINTED ON A BUNDLE, and no caption claims one. 42 × 2,000
+ * is 84,000, not 84,200, and this is a project whose build asserts exist to stop
+ * it shipping a month that lies. The strap carries a teller's band legend, which
+ * is a real artefact and cannot be wrong. Quantity is carried by count; every
+ * figure the visitor actually READS is exact and comes from story.ts.
+ *
+ * THREE CLAIMS, THREE DIFFERENT VERBS — this is what stops it being the same
+ * slide three times:
+ *   payroll   is DRAGGED OFF   — the register comes and collects it
+ *   operating FELL AWAY        — nobody collects; it drops off the desk edge
+ *   tax       NEVER LEAVES     — it squares up inside a pencil fence and stays
+ *
+ * The last one is the argument. Two objects end up on the same desk, and only
+ * one of them is yours — which is precisely what a bank balance hides.
+ */
+import DocFace from './paper/DocFace.astro';
+import BeatBand from './BeatBand.astro';
+import { beats } from '../config/content';
+import { buckets, docById } from '../config/story';
+import { moneyShort } from '../lib/format';
+import { RUN } from '../config/scenes';
+
+const s = beats.split;
+
+const inflow = buckets.reduce((a, b) => a + b.amount, 0);
+/* The last bucket is what is left. Positional — see the note in story.ts. */
+const keep = buckets[buckets.length - 1]!;
+const claims = buckets.slice(0, -1);
+
+/* ─────────────────────────────────────────────── how many bundles, and whose */
+
+/*
+ * The unit is DERIVED, never typed. A rescin onto a firm whose months run to
+ * $840k must not pour eight hundred bundles onto the desk, and one running $12k
+ * months must not pour twelve. Walk a ladder of round denominations until the
+ * count is something a person could plausibly count.
+ */
+const LADDER = [
+  50, 100, 200, 250, 500, 1000, 2000, 2500, 4000, 5000, 10000, 25000, 50000, 100000,
+];
+/*
+ * TWENTY-FOUR, NOT FORTY-SIX.
+ *
+ * The first build poured forty-two bundles and they came out at 150 by 64
+ * pixels — small enough that whatever was drawn on them was lost, so they read
+ * as a scatter of white cards. Halving the count doubles the area of each one,
+ * and it is the better argument as well as the better picture: the scene's last
+ * beat is somebody counting what is left, and twenty-one objects can be counted
+ * at a glance where forty-two can only be estimated.
+ */
+const UNIT = LADDER.find((u) => Math.round(inflow / u) <= 24) ?? LADDER[LADDER.length - 1]!;
+const N = Math.round(inflow / UNIT);
+
+/**
+ * Largest-remainder apportionment with a floor, so no claim is ever represented
+ * by nothing — a document that lights up and then takes no paper off the desk
+ * is worse than no document at all.
+ */
+function apportion(values: number[], total: number, floor: number): number[] {
+  const sum = values.reduce((a, b) => a + b, 0);
+  const raw = values.map((v) => (v / sum) * total);
+  const out = raw.map((r) => Math.max(floor, Math.floor(r)));
+  const rank = raw.map((r, i) => ({ i, frac: r - Math.floor(r) })).sort((a, b) => b.frac - a.frac);
+  let diff = total - out.reduce((a, b) => a + b, 0);
+  for (let k = 0; diff > 0; k += 1, diff -= 1) out[rank[k % rank.length]!.i]! += 1;
+  while (diff < 0) {
+    const big = out
+      .map((v, i) => ({ v, i }))
+      .filter((x) => x.v > floor)
+      .sort((a, b) => b.v - a.v)[0];
+    if (!big) break;
+    out[big.i]! -= 1;
+    diff += 1;
+  }
+  return out;
+}
+
+const counts = apportion(buckets.map((b) => b.amount), N, 2);
+const countOf = Object.fromEntries(buckets.map((b, i) => [b.id, counts[i]!]));
+
+/* One deterministic hash. Everything ragged on this desk comes out of it, at
+   build time, so the scene is identical on every load and in every browser. */
+const hash = (k: number) => {
+  const v = Math.sin(k * 127.1 + 311.7) * 43758.5453;
+  return v - Math.floor(v);
+};
+
+/* ───────────────────────────────────────────────────────────────── the pour */
+
+/* All lengths below are in `u`, one derived unit. The stylesheet solves for u
+   once, against both axes of the stage, so the whole apparatus scales together
+   and there is no viewport where the bundles go to hairlines in an empty frame. */
+const W_WAD = 3.4;
+const H_WAD = 1.35;
+const PITCH_X = 2.6; /* 24% side overlap */
+const PITCH_Y = 0.85; /* 37% shingle */
+/* Four across, not five. The spread is width-bound at every viewport that shows
+   it, so this is the one number that actually sets how big a bundle gets. */
+const ACROSS = 4;
+const ROWS = Math.ceil(N / ACROSS);
+
+/* Row lengths differ and their ORDER is shuffled, so the short rows are not all
+   at the foot. That one line is most of what stops the spread reading as a
+   grid, and it costs nothing. */
+const caps = Array.from({ length: ROWS }, (_, r) =>
+  Math.floor(N / ROWS) + (r < N % ROWS ? 1 : 0),
+);
+const rowLengths = caps
+  .map((c, i) => ({ c, k: hash(i * 7 + 3) }))
+  .sort((a, b) => a.k - b.k)
+  .map((x) => x.c);
+
+type Wad = {
+  i: number;
+  x: number;
+  y: number;
+  r: number;
+  z: number;
+  owner: string;
+  dx: number;
+  dy: number;
+  dr: number;
+  fade: number;
+  /**
+   * True for the group that leaves through the BOTTOM of the picture.
+   *
+   * Everything else exits sideways, where the frame edge reads as the edge of
+   * the shot and a bundle crossing it at full strength is simply leaving. The
+   * bottom edge is not that: it is where the page carries on, and a bundle
+   * guillotined by it reads as a bug. This group fades early and falls short.
+   */
+  falls: boolean;
+  g0: number;
+  du: number;
+};
+
+const wads: Wad[] = [];
+let n = 0;
+rowLengths.forEach((len, r) => {
+  for (let c = 0; c < len; c += 1) {
+    wads.push({
+      i: n,
+      x: c * PITCH_X + (r % 2 ? 0.3 : -0.3) * PITCH_X + (hash(n * 3 + 1) - 0.5) * 0.84 * PITCH_X,
+      y: r * PITCH_Y + (hash(n * 3 + 2) - 0.5) * 0.6 * PITCH_Y,
+      r: (hash(n * 3) - 0.5) * 7,
+      z: r * ACROSS + c,
+      owner: '',
+      dx: 0,
+      dy: 0,
+      dr: 0,
+      fade: 1,
+      falls: false,
+      g0: 0,
+      du: 0.055,
+    });
+    n += 1;
+  }
+});
+
+/*
+ * The stratified deal. Walk the bundles in hash order and always give the next
+ * one to whichever claim is furthest from being satisfied — which interleaves
+ * the four owners evenly — then scatter that interleave across the spread by
+ * doing it in shuffled index order. The result is that no claim owns a region.
+ */
+const dealOrder = wads.map((w) => w.i).sort((a, b) => hash(a * 11 + 5) - hash(b * 11 + 5));
+const remaining = counts.slice();
+for (const idx of dealOrder) {
+  let best = 0;
+  for (let b = 1; b < remaining.length; b += 1) if (remaining[b]! > remaining[best]!) best = b;
+  wads[idx]!.owner = buckets[best]!.id;
+  remaining[best]! -= 1;
+}
+
+/* Normalise to the footprint's own origin and measure it. Never typed. */
+const PAD = 0.7;
+const minX = Math.min(...wads.map((w) => w.x));
+const minY = Math.min(...wads.map((w) => w.y));
+for (const w of wads) {
+  w.x += PAD - minX;
+  w.y += PAD - minY;
+}
+const FOOT_W = +(Math.max(...wads.map((w) => w.x)) + W_WAD + PAD).toFixed(3);
+const FOOT_H = +(Math.max(...wads.map((w) => w.y)) + H_WAD + PAD).toFixed(3);
+
+/* ────────────────────────────────────────────────────── where each one goes */
+
+/*
+ * Squared-up pitch, for the two groups that end the scene tidy. The vertical
+ * pitch is deliberately looser than the pour's: shingled at 0.62 the rows
+ * merged into three tall slabs and the count stopped being countable, which
+ * defeats a scene whose last beat is somebody counting.
+ */
+const BX = 3.55;
+const BY = 1.05;
+const INSET = 0.6;
+
+/*
+ * What is left ends up centred under the month's outline; what is held ends up
+ * in its top-right corner. They are apart in both axes on purpose — the closing
+ * image is TWO objects on one desk, and two blocks in a column read as one
+ * thing in two parts. Centring also keeps the kept money clear of the claim
+ * tickets parked along the left edge.
+ */
+const KEEP_COLS = 3;
+const keepRows = Math.ceil(countOf[keep.id]! / KEEP_COLS);
+const KEEP_W = (KEEP_COLS - 1) * BX + W_WAD;
+const KEEP_H = (keepRows - 1) * BY + H_WAD;
+const KEEP_Y = +(FOOT_H - INSET - KEEP_H).toFixed(3);
+
+const FENCE_COLS = 2;
+const taxId = claims[claims.length - 1]!.id;
+const fenceRows = Math.ceil(countOf[taxId]! / FENCE_COLS);
+const FENCE_W = (FENCE_COLS - 1) * BX + W_WAD;
+const FENCE_H = (fenceRows - 1) * BY + H_WAD;
+const FENCE_X = +(FOOT_W - INSET - FENCE_W).toFixed(3);
+const FENCE_Y = INSET;
+const KEEP_X = +((FOOT_W - KEEP_W) / 2).toFixed(3);
+
+/*
+ * Build-time assertion, in the spirit of story.ts. The two groups that survive
+ * to the last frame sit in opposite corners of the footprint; if a rescin's
+ * amounts ever made them tall enough to collide, the closing image would be a
+ * pile-up and nobody would notice until it shipped.
+ */
+if (KEEP_Y <= FENCE_Y + FENCE_H) {
+  throw new Error(
+    `Allocate — what is kept (y ${KEEP_Y}) overlaps what is held (ends ${FENCE_Y + FENCE_H}). ` +
+      `The footprint is too short for these counts; raise the unit ladder or widen KEEP_COLS.`,
+  );
+}
+
+let keepSlot = 0;
+let fenceSlot = 0;
+for (const w of wads) {
+  if (w.owner === keep.id) {
+    const c = keepSlot % KEEP_COLS;
+    const r = Math.floor(keepSlot / KEEP_COLS);
+    keepSlot += 1;
+    w.dx = +(KEEP_X + c * BX).toFixed(3);
+    w.dy = +(KEEP_Y + r * BY).toFixed(3);
+    w.dr = +(-w.r).toFixed(2);
+    w.fade = 0;
+  } else if (w.owner === taxId) {
+    const c = fenceSlot % FENCE_COLS;
+    const r = Math.floor(fenceSlot / FENCE_COLS);
+    fenceSlot += 1;
+    w.dx = +(FENCE_X + c * BX).toFixed(3);
+    w.dy = +(FENCE_Y + r * BY).toFixed(3);
+    w.dr = +(-w.r).toFixed(2);
+    w.fade = 0;
+  } else if (w.owner === claims[0]!.id) {
+    /* Dragged off to the left, behind the register that came for it. */
+    w.dx = +(-(FOOT_W + 7)).toFixed(3);
+    w.dy = +(w.y + (hash(w.i * 5) - 0.5) * 1.4).toFixed(3);
+    w.dr = +((hash(w.i * 5 + 1) - 0.5) * 22).toFixed(2);
+  } else {
+    /*
+     * Fell off the front of the desk. Nobody came for it.
+     *
+     * The drop is deliberately SHORT — six tenths of the footprint, not the
+     * nearly two it used to be. Paired with the early fade below, the bundle is
+     * gone before it reaches the bottom of the picture instead of being sliced
+     * in half by it, which is what a long fall through a frame edge looks like.
+     */
+    w.dx = +(w.x + (hash(w.i * 5 + 2) - 0.5) * 4).toFixed(3);
+    w.dy = +(w.y + FOOT_H * 0.62).toFixed(3);
+    w.dr = +((hash(w.i * 5 + 3) - 0.5) * 46).toFixed(2);
+    w.falls = true;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────── the clock */
+
+/*
+ * Each claim leaves in BITES that match its own document's rows, so twelve
+ * bundles going out for crew wages and one for workers' comp is the register
+ * being read aloud rather than a uniform drain.
+ */
+const T = {
+  payroll: [0.18, 0.33],
+  operating: [0.4, 0.55],
+  tax: [0.62, 0.73],
+  keep: [0.73, 0.89],
+} as const;
+
+function stagger(ids: number[], from: number, to: number, bites: number[], travel: number) {
+  const span = Math.max(0.001, to - from - travel);
+  let i = 0;
+  bites.forEach((size, b) => {
+    const start = from + (bites.length === 1 ? 0 : (b / bites.length) * span);
+    for (let j = 0; j < size && i < ids.length; j += 1, i += 1) {
+      wads[ids[i]!]!.g0 = +(start + j * 0.005).toFixed(4);
+      wads[ids[i]!]!.du = travel;
+    }
+  });
+  for (; i < ids.length; i += 1) {
+    wads[ids[i]!]!.g0 = +(to - travel).toFixed(4);
+    wads[ids[i]!]!.du = travel;
+  }
+}
+
+const idsOf = (owner: string) => wads.filter((w) => w.owner === owner).map((w) => w.i);
+const bitesOf = (id: string, total: number) =>
+  apportion(docById[id]!.rows.map((r) => r.amount), total, 1);
+
+stagger(idsOf(claims[0]!.id), T.payroll[0], T.payroll[1], bitesOf(claims[0]!.id, countOf[claims[0]!.id]!), 0.055);
+stagger(idsOf(claims[1]!.id), T.operating[0], T.operating[1], bitesOf(claims[1]!.id, countOf[claims[1]!.id]!), 0.06);
+stagger(idsOf(taxId), T.tax[0], T.tax[1], [countOf[taxId]!], 0.05);
+/* The count-out: one at a time, evenly, because somebody counting your money
+   in front of you is the reward — not a number appearing. */
+stagger(idsOf(keep.id), T.keep[0], T.keep[1], Array(countOf[keep.id]!).fill(1), 0.038);
+
+/* ──────────────────────────────────────────────────────── the working column */
+
+/* Unchanged from the version this replaces: it was the one part every reading
+   said to keep, and it is the only place the arithmetic is done as arithmetic. */
+const rests = claims.reduce((acc, c) => [...acc, acc[acc.length - 1]! - c.amount], [inflow]);
+const WRITE = [0.27, 0.49, 0.71];
+/* The last figure waits for the COUNT, not for the fence: the held money is
+   still lying on the desk when the fence is drawn, so "what is left" cannot
+   drop until somebody has counted what is outside it. */
+const SWAP = [0.275, 0.495, 0.86];
+const FADE = 0.014;
+const ramp = (from: number, over: number) =>
+  `clamp(0, calc((var(--p) - ${from.toFixed(3)}) / ${over}), 1)`;
+const stepIn = (i: number) => (i === 0 ? '1' : ramp(SWAP[i - 1]!, FADE));
+const stepOut = (i: number) =>
+  i === rests.length - 1 ? '1' : `clamp(0, calc((${SWAP[i]!.toFixed(3)} - var(--p)) / ${FADE}), 1)`;
+
+/*
+ * The width coefficient the stylesheet solves `--u` with, printed from the
+ * measured footprint so a rescin recomputes it. The height side is not a
+ * coefficient any more: it is `(the stage, less the band above and the label
+ * below) / FOOT_H`, so the apparatus is sized around the space that is actually
+ * free rather than around a fraction that was true at one viewport.
+ */
+const U_W = +(100 / FOOT_W).toFixed(4);
+---
+
+<section class="spl" data-scene="allocate" id="yours" style={`--run:${RUN.allocate}`}>
+  <div class="spl__pin">
+    <!--
+      Four headings, and the swap between them is FAST — a third of the usual
+      fade. Beats stack in one grid cell, so overlapping their ranges prints two
+      headings on top of each other and neither can be read; abutting them at
+      the default fade leaves the band nearly blank across four hundredths of
+      the scene, which is fifty pixels of scroll with no heading on the desk.
+      Abutting plus a quick fade is the only combination that is neither.
+    -->
+    <BeatBand
+      fade={0.035}
+      beats={[
+        { eyebrow: s.eyebrow, heading: s.heading, line: s.line, from: 0, to: 0.52 },
+        { eyebrow: s.eyebrow, heading: s.heldHeading, line: s.heldLine, from: 0.52, to: 0.71 },
+        { eyebrow: s.eyebrow, heading: s.countHeading, from: 0.71, to: 0.87 },
+        { eyebrow: s.eyebrow, heading: s.keepHeading, line: s.keepLine, from: 0.87 },
+      ]}
+    />
+
+    <!--
+      `data-band-clear` asks the engine for one number: how far the heading band
+      hangs below the top of this box. Everything on the desk is sized and placed
+      from it, so the apparatus can never be ruled through by its own chapter
+      heading, at any width, whatever the copy wraps to.
+    -->
+    <div class="spl__stage" data-band-clear>
+      <!--
+        Everything on the desk shares one scalar. It lives here, on a wrapper
+        that is NOT the size container and NOT the footprint, because the claim
+        documents are sized from it too and they are not children of the
+        footprint — they arrive from outside it.
+      -->
+      <div class="spl__desk" style={`--uw:${U_W};--fh:${FOOT_H}`} aria-hidden="true">
+        <div class="spl__field" style={`--fw:${FOOT_W};--fh:${FOOT_H}`}>
+          <!--
+            The frozen outline. Ruled in the first tenth of the scene and never
+            moved again, so the last frame proves the ratio with bare desk
+            instead of asserting it in a sentence.
+          -->
+          <span class="foot"><span class="foot__hatch"></span></span>
+
+          <!-- Nothing collects the tax. It squares up inside a pencil fence,
+               INSIDE the footprint, because this money never left the account. -->
+          <span
+            class="fence"
+            style={`--x:${FENCE_X};--y:${FENCE_Y};--w:${FENCE_W};--h:${FENCE_H}`}
+          >
+            <span class="fence__tag">{s.heldTag}</span>
+            <span class="stamp stamp--held">{s.stamps[taxId]}</span>
+          </span>
+
+          {
+            wads.map((w) => (
+              <span
+                class:list={['wad', `wad--${w.owner}`, w.falls && 'wad--falls']}
+                style={`--x:${w.x.toFixed(3)};--y:${w.y.toFixed(3)};--r:${w.r.toFixed(2)};--dx:${w.dx};--dy:${w.dy};--dr:${w.dr};--g0:${w.g0};--du:${w.du};--fade:${w.fade};z-index:${2 + w.z}`}
+              />
+            ))
+          }
+        </div>
+
+        <!--
+          The three claims. Each one enters by a different verb and then PARKS
+          cropped at a frame edge for the rest of the scene, stamped — so the
+          closing image carries the whole argument without a word: two claims
+          that left, one that did not, and what nobody has a claim on.
+        -->
+        <div class="claim claim--payroll">
+          <DocFace doc={docById[claims[0]!.id]!} variant="list" />
+          <span class="stamp">{s.stamps[claims[0]!.id]}</span>
+        </div>
+
+        <div class="claim claim--operating">
+          <div class="claim__roll">
+            <DocFace doc={docById[claims[1]!.id]!} variant="list" />
+          </div>
+          <span class="stamp">{s.stamps[claims[1]!.id]}</span>
+        </div>
+
+        <!--
+          There is deliberately NO document for the tax claim. Nothing comes to
+          collect it — that is the entire point of the beat, and a third sheet
+          sailing in to take it would say the opposite of what the fence, the
+          tag and the HELD stamp are there to say.
+        -->
+
+        <!--
+          One label slot under the outline, two states. Early it says what the
+          spread is; at the end the same outline is mostly bare and it says what
+          the outline was — which is the whole argument, stated by an empty
+          rectangle. They never coexist, so they share a cell and cannot collide.
+        -->
+        <p class="spl__caption">
+          <span class="u-caps spl__caption--early">{s.countNote} · {moneyShort(inflow)}</span>
+          <span class="u-caps spl__caption--late">{s.startedNote} · {moneyShort(inflow)}</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="spl__work">
+      <ol class="spl__less">
+        {
+          claims.map((c, i) => (
+            <li class="spl__row" style={`--in:${ramp(WRITE[i]!, 0.05)}`}>
+              <span class="spl__name">{c.label}</span>
+              <span class="spl__why">{s.claims[c.id]}</span>
+              <span class="spl__leader" aria-hidden="true" />
+              <span class="spl__amount u-num">−{moneyShort(c.amount)}</span>
+            </li>
+          ))
+        }
+      </ol>
+
+      <span class="spl__rule" aria-hidden="true"></span>
+
+      <div class="spl__sum">
+        <p class="spl__label">
+          <span class="u-caps" style={`opacity:${stepOut(0)}`}>{s.startLabel}</span>
+          <span class="u-caps" style={`opacity:${stepIn(1)}`}>{s.runningLabel}</span>
+        </p>
+
+        <p class="spl__figure">
+          {
+            rests.map((v, i) => (
+              <span
+                class="spl__step u-num"
+                style={`--in:${stepIn(i)};opacity:min(${stepIn(i)}, ${stepOut(i)})`}
+              >
+                {moneyShort(v)}
+              </span>
+            ))
+          }
+        </p>
+
+        <p class="spl__both">{s.bothLine}</p>
+        <p class="spl__note"><em>{s.keepCents}</em> {s.keepNote}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .spl {
+    /* From scenes.ts — see the note in Opening. */
+    height: calc(100svh + var(--run) * 1vh);
+  }
+
+  .spl__pin {
+    /*
+     * Five moves, five easing slots. Smoothstep on each: paper leaves a desk
+     * gently and arrives gently, and a linear ramp reads as a UI transition.
+     *   1  the payroll register arrives      4  the settle: tint, hatch, answer
+     *   2  the operating slip unrolls        5  the pencil fence draws itself
+     *   3  the tax sheet rises
+     */
+    --f1: clamp(0, calc((var(--p) - 0.1) / 0.1), 1);
+    --f2: clamp(0, calc((var(--p) - 0.32) / 0.1), 1);
+    --f3: clamp(0, calc((var(--p) - 0.54) / 0.08), 1);
+    --f4: clamp(0, calc((var(--p) - 0.88) / 0.08), 1);
+    --f5: clamp(0, calc((var(--p) - 0.56) / 0.08), 1);
+    --e1: calc(var(--f1) * var(--f1) * (3 - 2 * var(--f1)));
+    --e2: calc(var(--f2) * var(--f2) * (3 - 2 * var(--f2)));
+    --e3: calc(var(--f3) * var(--f3) * (3 - 2 * var(--f3)));
+    --e4: calc(var(--f4) * var(--f4) * (3 - 2 * var(--f4)));
+    --e5: calc(var(--f5) * var(--f5) * (3 - 2 * var(--f5)));
+
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    /*
+     * The stage spans the WHOLE frame and the working column is laid over it,
+     * rather than the two sitting in grid columns. That is not a styling
+     * preference: the claim documents are meant to be cropped by the edge of
+     * the picture, and in a two-column grid the stage's right-hand edge is an
+     * invisible line down the middle of the screen. The operating slip parked
+     * against it and landed on top of the answer.
+     */
+    /* Named, because the working column is laid over the pin and has to be
+       bounded by the same content box the stage is. Centred on the pin instead,
+       it reaches up into the heading on a 700-tall laptop. */
+    --pt: calc(var(--mast-h) + clamp(8.5rem, 20vh, 12.5rem));
+    --pb: clamp(3.5rem, 10vh, 6rem);
+    padding-top: var(--pt);
+    padding-bottom: var(--pb);
+    overflow: clip;
+  }
+
+  /* ── the desk ─────────────────────────────────────────────────────── */
+
+  .spl__stage {
+    /* Overwritten by the engine on load and on every resize. The fallback is
+       what a visitor with no JavaScript gets: an estimate that errs HIGH, which
+       makes the apparatus a little small rather than letting it climb into its
+       own heading. It matched the measured clearance to two pixels at 1440x900
+       and overshoots everywhere else. */
+    --lead: clamp(0px, calc(13vh - 2.5rem), 5.5rem);
+    position: relative;
+    height: 100%;
+    container-type: size;
+  }
+
+  /*
+   * The scalar. `--u` is solved against BOTH axes of the stage and capped, so
+   * the whole apparatus — bundles, footprint, fence, claim tickets — scales as
+   * one object. There is no viewport at which the bundles shrink to hairlines
+   * while the frame stays empty, which is the failure mode of every "many small
+   * things" scene ever built.
+   *
+   * The two coefficients are printed from the measured footprint, so a rescin
+   * that changes the amounts changes them too. This element is deliberately NOT
+   * the container: container units read the NEAREST container, and a container
+   * sizing itself from its own units is the cycle in lesson 1.
+   */
+  .spl__desk {
+    /* How much of the frame's width the month is allowed. The working column is
+       laid over the rest, so this is the one number that keeps the two apart. */
+    --span: 0.62;
+    --fx: 33%;
+
+    /*
+     * The three bands of the desk, top to bottom: the heading's overhang plus a
+     * breath, the apparatus, the label.
+     *
+     * `--head` and `--cap` are subtracted BEFORE the scalar is solved, so the
+     * footprint is never taller than the gap it has to live in. That is the
+     * whole fix: the old form took a flat 86% of the stage, which is more than
+     * exists on a 900-tall laptop once a chapter heading and a supporting line
+     * are sitting on top of it, and the outline ruled a line through the words.
+     */
+    --cap: clamp(1.3rem, 0.95rem + 0.85vw, 1.9rem);
+    --head: calc(var(--lead) + clamp(0.5rem, 1.4vh, 0.9rem));
+    --free: calc(100cqh - var(--head) - var(--cap));
+    --u: calc(min(var(--uw) * var(--span) * 1cqw, var(--free) / var(--fh), 4.4rem) * 0.97);
+    position: absolute;
+    inset: 0;
+  }
+
+  /*
+   * Centred in `--free`, not in the stage.
+   *
+   * It used to sit at 50% of the stage with a -56% nudge, which spends spare
+   * height evenly above and below — fine until the chapter headings were made
+   * forty per cent bigger and the band grew down into the top of the desk. Since
+   * `--u` is now solved against `--free`, this expression can never be negative:
+   * the block is centred between the heading and the label, and any slack falls
+   * out evenly on both sides of it.
+   */
+  .spl__field {
+    position: absolute;
+    left: var(--fx);
+    top: calc(var(--head) + (var(--free) - var(--fh) * var(--u)) / 2);
+    width: calc(var(--fw) * var(--u));
+    height: calc(var(--fh) * var(--u));
+    translate: -50% 0;
+  }
+
+  /* ── the label under the outline ──────────────────────────────────── */
+
+  .spl__caption {
+    position: absolute;
+    left: var(--fx);
+    bottom: 0;
+    display: grid;
+    justify-items: center;
+    translate: -50% 0;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .spl__caption > * {
+    grid-area: 1 / 1;
+    font-size: clamp(0.625rem, 0.45rem + 0.42vw, 0.8125rem);
+    letter-spacing: 0.1em;
+    color: var(--desk-mark);
+  }
+
+  .spl__caption--early {
+    opacity: min(
+      clamp(0, calc((var(--p) - 0.03) / 0.05), 1),
+      clamp(0, calc((0.18 - var(--p)) / 0.04), 1)
+    );
+  }
+
+  /* The same outline, now mostly bare. This is the sentence the empty desk is
+     making, and it only earns its place once the desk is empty. */
+  .spl__caption--late {
+    color: var(--desk-ink-quiet);
+    opacity: clamp(0, calc((var(--p) - 0.9) / 0.05), 1);
+  }
+
+  /* ── the frozen footprint ─────────────────────────────────────────── */
+
+  .foot {
+    position: absolute;
+    inset: 0;
+    border: 1px dashed var(--desk-mark);
+    border-radius: 2px;
+    rotate: -0.5deg;
+    /* Drawn left to right in the first tenth, then never touched again. */
+    scale: clamp(0, calc((var(--p) - 0.02) / 0.055), 1) 1;
+    transform-origin: left;
+    opacity: 0.75;
+  }
+
+  /*
+   * What the scene is for, in one element: by the last frame most of the month's
+   * own outline is bare desk. Hatched rather than tinted — a fill would read as
+   * a chart's plot area, and hatch reads as "nothing here".
+   */
+  .foot__hatch {
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      52deg,
+      var(--desk-mark) 0 1px,
+      transparent 1px 9px
+    );
+    opacity: calc(var(--e4) * 0.4);
+  }
+
+  /* ── the bundles ──────────────────────────────────────────────────── */
+
+  /*
+   * One rule, forty-two elements. Two clamps and one sine each, and the two
+   * derived numbers are registered so they compute once per element per frame
+   * rather than re-expanding the clamp everywhere they are read.
+   *
+   * box-shadow, never filter: drop-shadow — forty-two filtered elements is a
+   * different order of cost. And no .sheet--fibre: a turbulence data-URI tiled
+   * across a 60×24px object is invisible and not free.
+   */
+  .wad {
+    --bf: clamp(0, calc((var(--p) - var(--g0)) / var(--du)), 1);
+    --be: calc(var(--bf) * var(--bf) * (3 - 2 * var(--bf)));
+    /* Off the desk mid-move, flat before and after. This is the weight. */
+    --air: sin(calc(var(--bf) * 180deg));
+
+    /*
+     * ── WHY THIS IS GREEN AND NOT WHITE ─────────────────────────────────
+     *
+     * The first build drew these on `--stock-bond`: white paper with a kraft
+     * band. Forty-two of them read, correctly, as a scatter of business cards,
+     * because that is what a small white rectangle with a stripe IS. Nothing
+     * about the composition was wrong — the object was.
+     *
+     * Money is not brand-coloured, any more than the kraft folder is, so this
+     * is mixed from the pale green continuous-feed stock towards its own ink
+     * rather than from the brand. A red-branded firm gets the same notes,
+     * which is right: a banknote that changed colour with the logo would be
+     * the one object on this desk that could not exist.
+     */
+    --note: color-mix(in oklab, var(--stock-tractor) 82%, var(--stock-tractor-ink));
+    --note-line: color-mix(in oklab, var(--stock-tractor) 52%, var(--stock-tractor-ink));
+    --note-edge: color-mix(in oklab, var(--stock-tractor) 34%, var(--stock-tractor-ink));
+
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: calc(3.4 * var(--u));
+    height: calc(1.35 * var(--u));
+    border-radius: calc(0.04 * var(--u));
+    /*
+     * Four layers, front to back. Everything a banknote is at two centimetres
+     * across, and nothing it is not — no numerals, no wordmark, no seal. At
+     * this size those would be four grey smudges; the shapes below survive.
+     *
+     *   1  the cut edge of the stack, seen end-on along the foot. This is the
+     *      layer that says "a bundle" rather than "a note".
+     *   2  the portrait vignette. One dark oval in the middle is most of what
+     *      the eye uses to recognise currency at a glance.
+     *   3  intaglio — vertical hairlines at three-pixel pitch. Engraving.
+     *   4  the face, lit from the upper left like every other object here.
+     */
+    background:
+      repeating-linear-gradient(
+          0deg,
+          color-mix(in oklab, var(--note) 50%, var(--note-edge)) 0 1px,
+          transparent 1px calc(0.07 * var(--u))
+        )
+        bottom / 100% 26% no-repeat,
+      radial-gradient(
+        ellipse calc(0.44 * var(--u)) calc(0.4 * var(--u)) at 50% 46%,
+        color-mix(in oklab, var(--note-line) 55%, transparent) 0 55%,
+        transparent 78%
+      ),
+      repeating-linear-gradient(
+        90deg,
+        color-mix(in oklab, var(--note-line) 24%, transparent) 0 1px,
+        transparent 1px 3px
+      ),
+      linear-gradient(
+        168deg,
+        color-mix(in oklab, var(--note) 86%, #fff) 0 16%,
+        var(--note) 30% 100%
+      );
+    /*
+     * The border, as a banknote actually prints one: cut edge, a plain margin,
+     * then a rule just inside it. Three inset rings do it with no extra
+     * elements — and the ORDER is load-bearing. Earlier shadows paint over
+     * later ones, so the wide opaque margin is listed last and the wider rule
+     * behind it survives only in the sliver between them.
+     */
+    box-shadow:
+      0 calc((1 + var(--air) * 9) * 1px) calc((3 + var(--air) * 13) * 1px)
+        rgb(0 0 0 / calc(var(--shade-a) * (0.55 + var(--air) * 0.45))),
+      inset 0 0 0 1px color-mix(in oklab, var(--note-edge) 62%, transparent),
+      inset 0 0 0 calc(0.13 * var(--u)) color-mix(in oklab, var(--note-edge) 34%, transparent),
+      inset 0 0 0 calc(0.1 * var(--u)) var(--note);
+
+    translate:
+      calc((var(--x) + (var(--dx) - var(--x)) * var(--be)) * var(--u))
+      calc(
+        (var(--y) + (var(--dy) - var(--y)) * var(--be)) * var(--u) - var(--air) * 0.9 * var(--u)
+      );
+    rotate: calc((var(--r) + var(--dr) * var(--be)) * 1deg);
+    scale: calc(1 + var(--air) * 0.06);
+    /* --fade is 0 for the two groups that stay on the desk to the last frame.
+       The two that leave hold full strength for the first half of the move —
+       paper does not dissolve the moment it is picked up. */
+    --fade-at: 0.5;
+    --fade-over: 0.35;
+    opacity: calc(
+      1 - var(--fade) * clamp(0, calc((var(--be) - var(--fade-at)) / var(--fade-over)), 1)
+    );
+  }
+
+  /* Gone by the time it has fallen a fifth of the way, because the bottom of
+     the picture is close and being cut in half by it reads as a fault. */
+  .wad--falls {
+    --fade-at: 0.14;
+    --fade-over: 0.32;
+  }
+
+  /*
+   * The one that is yours takes the brand as the scene settles. Without this
+   * the last frame is two identical groups of paper and the sentence beside it
+   * — only one of them is yours — has nothing to point at.
+   */
+  .wad--available {
+    /* Re-point the three note inks towards the brand and the whole apparatus
+       above — face, engraving, vignette, border, stack edge — follows. */
+    --note: color-mix(in oklab, var(--brand-ink) calc(var(--e4) * 22%), var(--note-base));
+    --note-base: color-mix(in oklab, var(--stock-tractor) 82%, var(--stock-tractor-ink));
+    --note-line: color-mix(
+      in oklab,
+      var(--brand-ink) calc(var(--e4) * 34%),
+      color-mix(in oklab, var(--stock-tractor) 52%, var(--stock-tractor-ink))
+    );
+    --note-edge: color-mix(
+      in oklab,
+      var(--brand-ink) calc(var(--e4) * 40%),
+      color-mix(in oklab, var(--stock-tractor) 34%, var(--stock-tractor-ink))
+    );
+  }
+
+  /*
+   * The strap. Narrow, kraft, sitting a little left of centre the way a band
+   * actually lands when somebody straps a bundle by hand.
+   *
+   * It carries NOTHING. An earlier pass printed a teller's legend across it and
+   * the words were wider than the band, so every bundle read as a labelled card
+   * rather than as money. And a denomination is out of the question: 42 × 2,000
+   * is not 84,200, and this is a project whose build asserts exist to stop it
+   * shipping a month that lies. The count carries the quantity; every figure the
+   * visitor actually reads comes from story.ts and is exact.
+   */
+  .wad::after {
+    content: '';
+    position: absolute;
+    left: 31%;
+    right: 54%;
+    top: -5%;
+    bottom: -5%;
+    /* Kraft, with the printed rule a teller's band carries down its middle, and
+       a shadow either side where the paper lifts over the stack. */
+    background:
+      linear-gradient(
+          to right,
+          transparent 0 44%,
+          color-mix(in oklab, var(--stock-kraft-ink) 34%, transparent) 44% 47%,
+          transparent 47% 100%
+        )
+        no-repeat,
+      linear-gradient(
+        92deg,
+        color-mix(in oklab, var(--stock-kraft) 78%, var(--stock-kraft-ink)) 0 9%,
+        var(--stock-kraft) 22% 82%,
+        color-mix(in oklab, var(--stock-kraft) 84%, var(--stock-kraft-ink)) 100%
+      );
+    box-shadow:
+      inset 0 0 0 1px color-mix(in oklab, var(--stock-kraft-ink) 14%, transparent),
+      0 0 calc(0.06 * var(--u)) rgb(0 0 0 / calc(var(--shade-a) * 0.5));
+  }
+
+  /* ── the fence ────────────────────────────────────────────────────── */
+
+  /*
+   * Drawn INSIDE the footprint, because this money never left the account —
+   * that is the whole difference between it and the other two claims, and it is
+   * why the scene ends with two objects on one desk instead of one.
+   */
+  .fence {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: calc((var(--w) + 0.9) * var(--u));
+    height: calc((var(--h) + 0.9) * var(--u));
+    translate: calc((var(--x) - 0.45) * var(--u)) calc((var(--y) - 0.45) * var(--u));
+    z-index: 1;
+    border: 1px dashed var(--desk-ink-quiet);
+    border-radius: 2px;
+    rotate: 0.4deg;
+    scale: var(--e5) 1;
+    transform-origin: left;
+    opacity: 0.85;
+  }
+
+  /* Below the fence, not above it. Above, the tag sits outside the month's own
+     outline — which reads as a label on the desk rather than on the money, and
+     the whole point of this claim is that it never left the outline. */
+  .fence__tag {
+    position: absolute;
+    left: 0;
+    top: 100%;
+    margin-top: 0.4em;
+    font-family: var(--font-mono);
+    font-size: clamp(0.5625rem, 0.42rem + 0.36vw, 0.75rem);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--desk-ink-quiet);
+    opacity: var(--e5);
+  }
+
+  /* ── stamps ───────────────────────────────────────────────────────── */
+
+  /*
+   * The one motion on this page allowed to be abrupt. Paper is heavy and lands
+   * slowly; a stamp does not. Lifted from the version this replaces — it was the
+   * detail that worked.
+   */
+  .stamp {
+    position: absolute;
+    padding: 0.16em 0.5em 0.2em;
+    font-family: var(--font-mono);
+    font-size: clamp(0.6875rem, 0.5rem + 0.5vw, 1rem);
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: color-mix(in oklab, var(--paper-ink) 74%, transparent);
+    border: max(1px, 0.13em) solid currentColor;
+    border-radius: 2px;
+    rotate: -7deg;
+    pointer-events: none;
+  }
+
+  .claim--payroll .stamp {
+    --st: clamp(0, calc((var(--p) - 0.185) / 0.025), 1);
+    right: 8%;
+    bottom: 12%;
+  }
+
+  .claim--operating .stamp {
+    --st: clamp(0, calc((var(--p) - 0.4) / 0.025), 1);
+    right: 6%;
+    top: 6%;
+  }
+
+  .stamp--held {
+    --st: clamp(0, calc((var(--p) - 0.72) / 0.025), 1);
+    left: 50%;
+    top: 50%;
+    translate: -50% -50%;
+    color: color-mix(in oklab, var(--desk-ink) 80%, transparent);
+  }
+
+  .claim .stamp {
+    scale: calc(1 + (1 - var(--st, 0)) * 0.85);
+    opacity: var(--st, 0);
+  }
+
+  /* Centred on the fence, so its own centring translate has to survive the
+     snap-down — hence a combined transform rather than the plain scale above. */
+  .stamp--held {
+    scale: calc(1 + (1 - var(--st)) * 0.85);
+    opacity: var(--st);
+  }
+
+  /* ── the three claim documents ────────────────────────────────────── */
+
+  /*
+   * Each one enters by a different verb and then PARKS cropped at a frame edge
+   * for the rest of the scene. Sized from --u so they belong to the same desk as
+   * the bundles; the font-size is on this wrapper and not on .doc, which is a
+   * container query container (lesson 1).
+   */
+  .claim {
+    position: absolute;
+    z-index: 60;
+    /*
+     * Small, and expressed against `u` — which is what makes this fragile: `u`
+     * grew by a quarter when the bundles were enlarged, so these grew with it
+     * and the two tickets started overlapping each other down the left edge.
+     * The coefficients below are the old ones scaled back by that same quarter.
+     * These are tickets that name a claim and get stamped; the money is the
+     * subject of the scene, and at their first size each filled a quarter of
+     * the frame and the desk disappeared behind them.
+     */
+    width: calc(3.7 * var(--u));
+    font-size: calc(0.185 * var(--u));
+    filter: drop-shadow(0 6px 14px rgb(0 0 0 / calc(var(--shade-a) * 1.1)));
+  }
+
+  .claim :global(.doc) {
+    box-shadow: none;
+  }
+
+  /* Payroll: comes for its money. Slides in from the left and stays there, so
+     the bundles it takes visibly pass BEHIND it on their way out. */
+  .claim--payroll {
+    left: calc(-1.6 * var(--u));
+    top: 3%;
+    rotate: -2deg;
+    translate: calc((1 - var(--e1)) * -140%) 0;
+  }
+
+  /*
+   * Operating: nobody comes for it. The till slip UNROLLS, torn foot first, and
+   * its rows ink themselves in behind the descending edge — the paper is
+   * uncovered rather than scaled, so it reads as a roll being pulled off a
+   * machine and not as a card growing.
+   *
+   * It parks cropped by two real frame edges, left and bottom. The right-hand
+   * side of the frame belongs to the working, and paper that stops dead in the
+   * middle of the screen reads as a bug rather than as a desk.
+   */
+  .claim--operating {
+    left: calc(-1.2 * var(--u));
+    /* Above the running strip in the corner, not through it. Cropped by the
+       left edge only — it used to be cropped by the bottom as well, and the
+       strip's own line printed straight across the slip's total. */
+    bottom: calc(1.5 * var(--u));
+    rotate: 1.6deg;
+  }
+
+  .claim__roll {
+    clip-path: inset(0 0 calc((1 - var(--e2)) * 100%) 0);
+  }
+
+  .claim--operating :global(.doc__row) {
+    opacity: clamp(0, calc((var(--p) - 0.345 - var(--row) * 0.013) / 0.02), 1);
+  }
+
+  /*
+   * Row index as a NUMBER. DocFace prints `data-row`, which is a string an
+   * attribute selector can match but calc() cannot read, and every timing here
+   * is `base + row × step`. nth-child is the only way to get the index into the
+   * arithmetic, so it is written out to the longest document on the desk.
+   */
+  .claim :global(.doc__row:nth-child(1)) {
+    --row: 0;
+  }
+  .claim :global(.doc__row:nth-child(2)) {
+    --row: 1;
+  }
+  .claim :global(.doc__row:nth-child(3)) {
+    --row: 2;
+  }
+  .claim :global(.doc__row:nth-child(4)) {
+    --row: 3;
+  }
+  .claim :global(.doc__row:nth-child(5)) {
+    --row: 4;
+  }
+
+  /* The register reads its own rows aloud as it takes them — the amber is the
+     vocabulary the visitor already learned two scenes ago. */
+  .claim--payroll :global(.doc__row) {
+    position: relative;
+  }
+
+  .claim--payroll :global(.doc__row::before) {
+    content: '';
+    position: absolute;
+    inset: -0.12em -0.4em;
+    z-index: -1;
+    border-radius: 2px;
+    background: color-mix(in oklab, var(--flag-loud) 26%, transparent);
+    box-shadow: inset 0 0 0 max(1px, 0.06em) color-mix(in oklab, var(--flag-loud) 58%, transparent);
+    opacity: clamp(0, calc((var(--p) - 0.15 - var(--row) * 0.02) / 0.02), 1);
+  }
+
+  /* ── the working ──────────────────────────────────────────────────── */
+
+  .spl__work {
+    position: absolute;
+    right: var(--gutter);
+    top: var(--pt);
+    bottom: var(--pb);
+    z-index: 70;
+    width: min(27rem, 34%);
+    display: grid;
+    align-content: center;
+    row-gap: clamp(0.4rem, 1.3vh, 0.85rem);
+  }
+
+  .spl__less {
+    display: grid;
+    padding: 0;
+    list-style: none;
+  }
+
+  .spl__row {
+    display: grid;
+    grid-template-columns: auto auto minmax(1.5rem, 1fr) auto;
+    align-items: baseline;
+    column-gap: 0.5rem;
+    line-height: 1.7;
+    opacity: var(--in);
+    translate: 0 calc((1 - var(--in)) * 7px);
+  }
+
+  .spl__name {
+    font-size: var(--fs-sm);
+    color: var(--desk-ink);
+  }
+
+  .spl__why {
+    min-width: 0;
+    font-size: var(--fs-xs);
+    color: var(--desk-ink-quiet);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Leader dots, drawn left to right as the line is written. The one piece of
+     accounting typography every visitor has seen without being told its name. */
+  .spl__leader {
+    align-self: center;
+    height: 0;
+    border-bottom: 1px dotted var(--desk-mark);
+    scale: var(--in) 1;
+    transform-origin: left;
+  }
+
+  .spl__amount {
+    font-size: var(--fs-sm);
+    color: var(--desk-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .spl__rule {
+    height: 0;
+    border-top: 3px double var(--desk-mark);
+    scale: clamp(0, calc((var(--p) - 0.74) / 0.08), 1) 1;
+    transform-origin: left;
+  }
+
+  .spl__label {
+    display: grid;
+    justify-items: start;
+    font-size: var(--fs-2xs);
+    color: var(--desk-ink-quiet);
+  }
+
+  .spl__label > * {
+    grid-area: 1 / 1;
+  }
+
+  /*
+   * The figure is not counted up — it is subtracted from. Four values stacked in
+   * one cell and swapped hard on the beat their claim resolves, so the change
+   * reads as arithmetic being done rather than a dial spinning. A number running
+   * smoothly from 84,200 to 24,400 has no three claims in it.
+   */
+  .spl__figure {
+    display: grid;
+    justify-items: start;
+    margin-top: 0.3rem;
+  }
+
+  .spl__step {
+    grid-area: 1 / 1;
+    font-size: clamp(2rem, 1.1rem + 2.9vw, 3.75rem);
+    font-weight: 450;
+    line-height: 1;
+    letter-spacing: -0.045em;
+    color: var(--desk-ink);
+    translate: 0 calc((1 - var(--in)) * 9px);
+  }
+
+  .spl__step:last-child {
+    color: color-mix(in oklab, var(--brand-lit) calc(var(--e4) * 100%), var(--desk-ink));
+    scale: calc(1 + var(--e4) * 0.1);
+    transform-origin: left;
+  }
+
+  /* The knife. Two objects are left on one desk and this says what the
+     difference is; there is nowhere else in the story it fits. */
+  .spl__both {
+    margin-top: 0.7rem;
+    font-size: var(--fs-base);
+    line-height: 1.4;
+    color: var(--desk-ink);
+    text-wrap: pretty;
+    opacity: clamp(0, calc((var(--p) - 0.9) / 0.05), 1);
+  }
+
+  .spl__note {
+    margin-top: 0.4rem;
+    font-size: var(--fs-sm);
+    line-height: 1.4;
+    color: var(--desk-ink-quiet);
+    text-wrap: pretty;
+    opacity: clamp(0, calc((var(--p) - 0.94) / 0.05), 1);
+  }
+
+  .spl__note em {
+    font-family: var(--font-mono);
+    font-style: normal;
+    font-weight: 500;
+    color: var(--desk-ink);
+  }
+
+  /* ── narrow ───────────────────────────────────────────────────────── */
+
+  /*
+   * One column: the desk on top, the working under it. The stage keeps the
+   * larger share because the count-out, the fence and the two-objects ending
+   * are the best thing this scene has, and they are the first casualties of
+   * splitting the height evenly.
+   */
+  @media (max-width: 900px) {
+    .spl {
+      --run: 156;
+    }
+
+    .spl__pin {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: 56% minmax(0, 44%);
+      row-gap: clamp(0.5rem, 2vh, 1.25rem);
+      --pt: calc(var(--mast-h) + clamp(9rem, 22vh, 12rem));
+      --pb: clamp(4rem, 12vh, 6.5rem);
+    }
+
+    /* The month gets the whole width here, and the working goes underneath. */
+    .spl__desk {
+      --span: 0.96;
+      --fx: 50%;
+    }
+
+    .spl__work {
+      position: static;
+      width: auto;
+      align-content: start;
+    }
+
+    /*
+     * The claim tickets go, and only their stamps stay.
+     *
+     * At this width a document is a hundred pixels wide over a footprint that
+     * is barely three hundred, and it hangs off the bottom of the desk into the
+     * working underneath. The stamp is the whole beat anyway — it says PAID and
+     * the money leaves — so the ticket it was struck on is what gets cut.
+     */
+    .claim {
+      width: auto;
+      inset: auto;
+      filter: none;
+    }
+
+    .claim :global(.doc),
+    .claim__roll {
+      display: none;
+    }
+
+    .claim .stamp {
+      position: absolute;
+      font-size: clamp(0.6875rem, 0.5rem + 0.6vw, 0.9375rem);
+      color: color-mix(in oklab, var(--desk-ink) 72%, transparent);
+    }
+
+    .claim--payroll .stamp {
+      left: 8%;
+      top: 6%;
+      right: auto;
+      bottom: auto;
+    }
+
+    .claim--operating .stamp {
+      left: 8%;
+      bottom: 8%;
+      right: auto;
+      top: auto;
+    }
+
+    /* One closing line is enough on a phone, and the sentence above says more
+       than the ratio does. */
+    .spl__note {
+      display: none;
+    }
+
+    .spl__why {
+      display: none;
+    }
+
+    .spl__row {
+      grid-template-columns: auto minmax(1.5rem, 1fr) auto;
+    }
+
+
+  }
+
+  @media (max-height: 780px) {
+    .spl__pin {
+      padding-top: calc(var(--mast-h) + clamp(7.5rem, 18vh, 10rem));
+      padding-bottom: clamp(3rem, 9vh, 5rem);
+    }
+
+    .spl__step {
+      font-size: clamp(1.75rem, 1rem + 2.6vw, 3rem);
+    }
+  }
+
+  /* The closing note repeats what the sentence above it already says. */
+  @media (max-height: 660px) {
+    .spl__note {
+      display: none;
+    }
+  }
+
+  /*
+   * Without motion, the scene has to state its conclusion rather than perform
+   * it. Everything jumps straight to the settled frame: the claims are gone,
+   * what is held is fenced, what is left is counted and green. The argument
+   * survives; only the choreography goes.
+   *
+   * The engine already snaps progress instead of easing it, so this only has to
+   * stop the things that move for their own sake — the lift on each bundle and
+   * the slide of a stamp landing.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .wad {
+      --air: 0;
+      scale: 1;
+    }
+
+    .stamp,
+    .claim .stamp,
+    .stamp--held {
+      scale: 1;
+    }
+
+    .spl__step,
+    .spl__row {
+      translate: none;
+    }
+  }
+</style>

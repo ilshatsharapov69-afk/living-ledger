@@ -1,0 +1,630 @@
+---
+/**
+ * Who we are — and it sits after the price deliberately.
+ *
+ * Before the price nobody cares who you are. Immediately after it, it is the
+ * only thing they still want to know: the visitor has decided the work is worth
+ * having and the figure is survivable, and the last doubt is whether the person
+ * behind it exists.
+ *
+ * THREE THINGS, IN THIS ORDER
+ *
+ * 1. A person, with a name and a FACE. Eight of twelve firms surveyed put one
+ *    on the page; the four that did not read as shells. The first build printed
+ *    a monogram instead, which is a tasteful way of still having no face — so
+ *    the slot is now a photographic print, and at `portrait: null` it holds a
+ *    drawn stand-in: a lit backdrop and a silhouette, in the page's own palette
+ *    and under the page's own lamp. It reads as a portrait at a glance, it is
+ *    obviously not a real person on inspection, and dropping a JPG into
+ *    `firm.person.portrait` swaps it without touching a line of layout.
+ *
+ * 2. Counted proof. `yearsInBusiness`, `clientCount` and `states` were all
+ *    written in the config and rendered nowhere; the whole trust load was being
+ *    carried by three chips at the top of the page.
+ *
+ * 3. How we handle your access. This is the emptiest space in the entire
+ *    competitive set — not one of the thirty-plus firms surveyed says anything
+ *    about it, on pages that all ask for the client's bank. It costs four lines
+ *    and it answers the fear that actually stops people hiring a bookkeeper.
+ *
+ * Testimonials close it, because a quote confirms competence rather than
+ * proving it — they only work once the reader believes there is somebody there.
+ */
+import { firm } from '../config/firm';
+import { trust as copy } from '../config/content';
+import { href } from '../lib/url';
+
+const { person, proof, audience } = firm;
+const founded = new Date().getFullYear() - proof.yearsInBusiness;
+const clientsRounded = Math.floor(proof.clientCount / 10) * 10;
+
+const credentials = [
+  ...(firm.licensure === 'bookkeeping' ? [] : [proof.cpaCredential]),
+  ...proof.credentials,
+];
+
+const counts = [
+  { lead: copy.countLead.years, value: String(founded), note: `${proof.yearsInBusiness} years` },
+  { lead: copy.countLead.clients, value: `${clientsRounded}+`, note: audience.clientType },
+  { lead: copy.countLead.states, value: audience.states.join(' · '), note: null },
+];
+
+/*
+ * The reviews.
+ *
+ * A quote in a box is a testimonial and everybody discounts it. The same words
+ * with an avatar, a rating, a date and a named source are a REVIEW, and a review
+ * is read as a record of something that happened rather than as copy the firm
+ * wrote about itself. It costs three extra fields per entry.
+ *
+ * Avatars are initials on a tinted disc — which is not a compromise, it is what
+ * a review platform actually shows for the majority of accounts, and it is the
+ * one avatar that cannot be a stock photograph of somebody who does not exist.
+ */
+const reviews = proof.testimonials.map((t, i) => ({
+  ...t,
+  stars: t.stars ?? 5,
+  initials: t.name
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase(),
+  /* Three discs that are visibly different people, mixed from tokens the page
+     already owns — brand green, a kraft gold, a clay. Mixing one hue by
+     percentage was the first attempt and produced three near-identical dark
+     discs, because every ink on this palette is dark by design. */
+  tint: [
+    'var(--brand-ink)',
+    'color-mix(in oklab, var(--stock-kraft-ink) 62%, var(--desk-flag))',
+    'color-mix(in oklab, var(--desk-alarm) 62%, var(--stock-kraft-ink))',
+  ][i % 3],
+}));
+
+/* Only claimed when the config claims it — see `proof.reviewSource` in firm.ts. */
+const onGoogle = proof.reviewSource === 'google';
+const listing = firm.social.google;
+const averageStars = reviews.reduce((s, r) => s + r.stars, 0) / Math.max(1, reviews.length);
+---
+
+<section class="tr" id="trust" data-scene="trust" data-scene-mode="enter" data-scene-span="0.95">
+  <div class="tr__frame frame">
+    <header class="tr__say">
+      <p class="tr__eyebrow u-caps">{copy.eyebrow}</p>
+      <h2 class="tr__heading">{copy.heading}</h2>
+      <p class="tr__line">{copy.line}</p>
+    </header>
+
+    <div class="tr__who">
+      <!--
+        A photographic print lying on the desk: white border, shadow, a degree
+        off square. Given a file it holds the real founder; at `portrait: null`
+        it holds the drawn stand-in below, which is lit by the same lamp as
+        every other object on this page and is meant to be replaced.
+      -->
+      <figure class="print">
+        {
+          person.portrait ? (
+            <img class="print__img" src={href(person.portrait)} alt={`${person.name}, ${person.role}`} />
+          ) : (
+            <svg class="print__ph" viewBox="0 0 100 100" role="img" aria-label={person.name}>
+              <defs>
+                <radialGradient id="tr-lamp" cx="32%" cy="24%" r="86%">
+                  <stop offset="0" stop-color="var(--ph-hi)" />
+                  <stop offset="1" stop-color="var(--ph-lo)" />
+                </radialGradient>
+              </defs>
+              <rect width="100" height="100" fill="url(#tr-lamp)" />
+              <path d="M13 100 C13 77.5, 27.5 65, 50 65 C72.5 65, 87 77.5, 87 100 Z" fill="var(--ph-fig)" />
+              <circle cx="50" cy="41" r="19" fill="var(--ph-fig)" />
+              {/* Rim light, upper left. One lamp, the whole page. */}
+              <path
+                d="M31 41 A19 19 0 0 1 59.5 24.5"
+                fill="none"
+                stroke="var(--ph-rim)"
+                stroke-width="1.5"
+                stroke-linecap="round"
+              />
+              <path
+                d="M30 100 C30 80, 37.5 67.5, 49 65.2"
+                fill="none"
+                stroke="var(--ph-rim)"
+                stroke-width="1.5"
+                stroke-linecap="round"
+              />
+            </svg>
+          )
+        }
+      </figure>
+
+      <div class="tr__words">
+        <p class="tr__say-line">{person.line}</p>
+
+        <p class="tr__sign">
+          <b class="tr__sign-name">{person.name}</b>
+          <span class="tr__sign-role">{person.role} · {firm.name}</span>
+        </p>
+
+        <ul class="tr__creds">
+          {credentials.map((c) => <li>{c}</li>)}
+        </ul>
+      </div>
+    </div>
+
+    <ul class="tr__counts">
+      {
+        counts.map((c) => (
+          <li class="count">
+            <span class="count__lead u-caps">{c.lead}</span>
+            <span class="count__value u-num">{c.value}</span>
+            {c.note && <span class="count__note">{c.note}</span>}
+          </li>
+        ))
+      }
+    </ul>
+
+    <section class="tr__data">
+      <h3 class="tr__data-lead u-caps">{copy.dataLead}</h3>
+      <ul>
+        {copy.data.map((d) => <li>{d}</li>)}
+      </ul>
+    </section>
+
+    <section class="tr__said">
+      <header class="tr__said-head">
+        <h3 class="tr__said-lead u-caps">{copy.saidLead}</h3>
+
+        {
+          onGoogle && (
+            <p class="tr__source">
+              <svg class="tr__pin" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M12 2.2c-3.7 0-6.7 2.94-6.7 6.57 0 4.83 6.03 12.4 6.29 12.72a.53.53 0 0 0 .82 0c.26-.32 6.29-7.89 6.29-12.72 0-3.63-3-6.57-6.7-6.57Zm0 9.63a3.02 3.02 0 0 1-3.05-2.99A3.02 3.02 0 0 1 12 5.85a3.02 3.02 0 0 1 3.05 2.99A3.02 3.02 0 0 1 12 11.83Z"
+                />
+              </svg>
+              <b class="u-num">{averageStars.toFixed(1)}</b>
+              <span class="stars" aria-hidden="true">
+                {Array.from({ length: 5 }, () => (
+                  <svg viewBox="0 0 20 20">
+                    <path d="M10 1.6 12.6 7l5.9.8-4.3 4.1 1 5.8L10 15l-5.2 2.7 1-5.8L1.5 7.8 7.4 7Z" />
+                  </svg>
+                ))}
+              </span>
+              {listing ? (
+                <a href={listing} rel="noopener noreferrer" target="_blank">
+                  {copy.sourceLabel}
+                </a>
+              ) : (
+                <span>{copy.sourceLabel}</span>
+              )}
+            </p>
+          )
+        }
+      </header>
+
+      <ul class="tr__quotes">
+        {
+          reviews.map((t, i) => (
+            <li class="review sheet sheet--fibre" data-stock="bond" style={`--i:${i}`}>
+              <header class="review__head">
+                <span class="review__av" style={`--tint:${t.tint}`} aria-hidden="true">
+                  {t.initials}
+                </span>
+                <span class="review__who">
+                  <b class="review__name">{t.name}</b>
+                  <span class="review__co">
+                    {t.role}, {t.company}
+                  </span>
+                </span>
+              </header>
+
+              <p class="review__meta">
+                <span class="stars" aria-label={`${t.stars} out of 5`}>
+                  {Array.from({ length: 5 }, (_, s) => (
+                    <svg viewBox="0 0 20 20" data-on={s < t.stars ? '' : null}>
+                      <path d="M10 1.6 12.6 7l5.9.8-4.3 4.1 1 5.8L10 15l-5.2 2.7 1-5.8L1.5 7.8 7.4 7Z" />
+                    </svg>
+                  ))}
+                </span>
+                <span class="review__when">{t.when}</span>
+              </p>
+
+              <blockquote class="review__text">{t.quote}</blockquote>
+              <p class="review__trade">{t.trade}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </div>
+</section>
+
+<style>
+  .tr {
+    position: relative;
+    z-index: 1;
+    padding-block: clamp(3rem, 8vh, 6rem);
+  }
+
+  .tr__frame {
+    display: grid;
+    gap: clamp(1.75rem, 4vh, 3rem);
+  }
+
+  .tr__say {
+    max-width: 46rem;
+  }
+
+  .tr__eyebrow {
+    font-size: var(--fs-2xs);
+    color: var(--brand-lit);
+  }
+
+  .tr__heading {
+    margin-top: 0.4rem;
+    font-size: var(--fs-2xl);
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -0.028em;
+    color: var(--desk-ink);
+    text-wrap: balance;
+  }
+
+  .tr__line {
+    margin-top: 0.75rem;
+    max-width: 58ch;
+    font-size: var(--fs-base);
+    line-height: 1.5;
+    color: var(--desk-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  /* ── the person ───────────────────────────────────────────────────── */
+
+  /*
+   * The print and what the person says, on one line and vertically centred. The
+   * first build stacked a name, a role, a firm and a monogram inside the card
+   * and then said the same things again beside it; this says each of them once.
+   */
+  .tr__who {
+    --in: clamp(0, calc((var(--p) - 0.05) / 0.2), 1);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(1.5rem, 3.5vw, 3rem);
+    opacity: var(--in);
+    translate: 0 calc((1 - var(--in)) * 16px);
+  }
+
+  /* The white border is what makes it a photograph on a surface rather than an
+     image in a card. */
+  .print {
+    --ph-hi: color-mix(in oklab, var(--desk-warm) 58%, #fff);
+    --ph-lo: color-mix(in oklab, var(--brand-ink) 26%, var(--desk-cool));
+    --ph-fig: color-mix(in oklab, var(--brand-ink) 66%, var(--desk-edge));
+    --ph-rim: color-mix(in oklab, #fff 48%, transparent);
+
+    width: clamp(10.5rem, 19vw, 14.5rem);
+    margin: 0;
+    padding: 0.55rem 0.55rem 1.35rem;
+    background: #fff;
+    rotate: -1.4deg;
+    box-shadow: var(--shadow-rest);
+  }
+
+  .print__img,
+  .print__ph {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+  }
+
+  .tr__say-line {
+    max-width: 52ch;
+    font-size: var(--fs-lg);
+    line-height: 1.45;
+    color: var(--desk-ink);
+    text-wrap: pretty;
+  }
+
+  /* Signed, the way a first-person paragraph is signed. */
+  .tr__sign {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.6rem;
+    margin-top: 0.9rem;
+  }
+
+  .tr__sign-name {
+    font-size: var(--fs-base);
+    font-weight: 600;
+    letter-spacing: -0.016em;
+    color: var(--desk-ink);
+  }
+
+  .tr__sign-name::before {
+    content: '— ';
+    color: var(--desk-mark);
+  }
+
+  .tr__sign-role {
+    font-size: var(--fs-sm);
+    color: var(--desk-ink-quiet);
+  }
+
+  .tr__creds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.4rem;
+    margin: 0.8rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tr__creds li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    letter-spacing: -0.01em;
+    color: var(--desk-ink-quiet);
+  }
+
+  .tr__creds li::before {
+    content: '✓';
+    color: var(--brand-lit);
+  }
+
+  /* ── counted proof ────────────────────────────────────────────────── */
+
+  .tr__counts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: clamp(1rem, 2.4vw, 2rem);
+    margin: 0;
+    padding: clamp(1rem, 2.5vh, 1.5rem) 0;
+    list-style: none;
+    border-block: 1px solid var(--desk-mark);
+    opacity: clamp(0, calc((var(--p) - 0.2) / 0.18), 1);
+  }
+
+  .count {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .count__lead {
+    font-size: var(--fs-2xs);
+    color: var(--desk-ink-quiet);
+  }
+
+  .count__value {
+    font-size: clamp(1.75rem, 1.1rem + 1.9vw, 2.5rem);
+    font-weight: 450;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--desk-ink);
+  }
+
+  .count__note {
+    font-size: var(--fs-xs);
+    color: var(--desk-ink-quiet);
+  }
+
+  /* ── access ───────────────────────────────────────────────────────── */
+
+  .tr__data {
+    display: grid;
+    gap: 0.6rem;
+    max-width: 60rem;
+    padding-left: clamp(0.75rem, 2vw, 1.5rem);
+    border-left: 2px solid var(--brand-lit);
+    opacity: clamp(0, calc((var(--p) - 0.32) / 0.18), 1);
+  }
+
+  .tr__data-lead {
+    font-size: var(--fs-2xs);
+    color: var(--desk-ink);
+  }
+
+  .tr__data ul {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tr__data li {
+    max-width: 64ch;
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    color: var(--desk-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  /* ── what they say ────────────────────────────────────────────────── */
+
+  .tr__said-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1.5rem;
+  }
+
+  .tr__said-lead {
+    font-size: var(--fs-2xs);
+    color: var(--desk-ink-quiet);
+  }
+
+  /* Where the reviews came from, stated once at the top rather than repeated on
+     every card. Only rendered when the config actually claims a source. */
+  .tr__source {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: var(--fs-sm);
+    color: var(--desk-ink-quiet);
+  }
+
+  .tr__source b {
+    font-weight: 600;
+    color: var(--desk-ink);
+  }
+
+  .tr__source a {
+    color: var(--desk-ink-quiet);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in oklab, var(--desk-mark) 60%, transparent);
+    text-underline-offset: 0.2em;
+  }
+
+  .tr__source a:hover {
+    color: var(--brand-lit);
+  }
+
+  .tr__pin {
+    width: 1.05em;
+    height: 1.05em;
+    color: var(--desk-mark);
+  }
+
+  /* One star shape, two states, used by the header and by every card. */
+  .stars {
+    display: inline-flex;
+    gap: 0.08em;
+  }
+
+  .stars svg {
+    width: 0.95em;
+    height: 0.95em;
+    fill: color-mix(in oklab, var(--desk-mark) 40%, transparent);
+  }
+
+  .stars svg[data-on],
+  .tr__source .stars svg {
+    fill: var(--desk-flag);
+  }
+
+  .tr__quotes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    align-items: start;
+    gap: clamp(1rem, 2.4vw, 1.75rem);
+    margin: 0.9rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /*
+   * A review, not a testimonial. Face, name, rating, date, then the words —
+   * which is the order every review platform prints and therefore the order a
+   * reader already knows how to skim.
+   */
+  .review {
+    --in: clamp(0, calc((var(--p) - 0.45 - var(--i) * 0.06) / 0.18), 1);
+    display: grid;
+    gap: 0.65rem;
+    padding: clamp(1.1rem, 2.2vw, 1.5rem);
+    rotate: calc((var(--i) - 1) * 0.4deg);
+    box-shadow: var(--shadow-rest);
+    opacity: var(--in);
+    translate: 0 calc((1 - var(--in)) * 14px);
+  }
+
+  .review__head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  /* Initials on a tinted disc — what a review platform shows for most accounts,
+     and the one avatar that cannot be a photograph of somebody invented. */
+  .review__av {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--brand-on-solid);
+    background: var(--tint);
+    border-radius: 50%;
+  }
+
+  .review__who {
+    display: grid;
+    gap: 0.05rem;
+    min-width: 0;
+  }
+
+  .review__name {
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--paper-ink);
+  }
+
+  .review__co,
+  .review__trade {
+    font-size: var(--fs-xs);
+    line-height: 1.4;
+    color: var(--paper-ink-quiet);
+  }
+
+  .review__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: var(--fs-xs);
+    color: var(--paper-ink-quiet);
+  }
+
+  .review__text {
+    margin: 0;
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+    color: var(--paper-ink);
+    text-wrap: pretty;
+  }
+
+  .review__text::before {
+    content: '“';
+  }
+
+  .review__text::after {
+    content: '”';
+  }
+
+  .review__trade {
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--paper-rule);
+  }
+
+  /* ── narrow ───────────────────────────────────────────────────────── */
+
+  @media (max-width: 720px) {
+    .tr__who {
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: start;
+    }
+
+    .print,
+    .review {
+      rotate: 0deg;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tr__who,
+    .review {
+      translate: none;
+    }
+  }
+</style>

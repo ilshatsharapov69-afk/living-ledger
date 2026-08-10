@@ -1,0 +1,80 @@
+---
+import '@fontsource-variable/geist';
+import '@fontsource-variable/geist-mono';
+import '@fontsource/instrument-serif/400.css';
+import '@fontsource/instrument-serif/400-italic.css';
+
+import '../styles/tokens.css';
+import '../styles/base.css';
+
+import { firm } from '../config/firm';
+import { paletteCss, type ThemeName } from '../lib/palette';
+import { href } from '../lib/url';
+
+interface Props {
+  title: string;
+  description: string;
+  theme?: ThemeName;
+}
+
+const { title, description, theme = 'light' } = Astro.props;
+
+/* Resolved at build time. Throws if the brand colour cannot be made legible. */
+const palette = paletteCss(firm.brandColor, theme);
+
+/*
+ * What a machine is told this page is.
+ *
+ * Branched on the same flag as the robots tag rather than hardcoded, because
+ * `indexable` is meant to be flipped to `true` on the day a real firm buys
+ * this — and a hardcoded "fictional firm" line would then be the description
+ * a paying client's site serves to Google.
+ */
+const metaDescription = firm.indexable
+  ? description
+  : `Design demonstration. ${firm.name} is a fictional firm; the content, figures, reviews and contact details are invented.`;
+---
+
+<!doctype html>
+<html lang="en" data-theme={theme}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={metaDescription} />
+    <meta name="theme-color" content={firm.brandColor} />
+    {
+      /* A demo of somebody else's firm must never be findable under their name.
+         One flag in firm.ts, flipped on the day a real domain goes live — see
+         the note there and the last line of the rescin checklist.
+
+         `nofollow, noarchive` as well as `noindex`, because a demo on a public
+         host is reachable by anything that follows a link, and a cached copy
+         outlives the flag. */
+      !firm.indexable && <meta name="robots" content="noindex, nofollow, noarchive" />
+    }
+    <link rel="icon" href={href('/favicon.svg')} type="image/svg+xml" />
+    <style set:html={palette}></style>
+  </head>
+
+  <body>
+    <!-- data-pointer: the room answers the cursor too, not only the paper. -->
+    <div class="desk" data-pointer aria-hidden="true">
+      <div class="desk__warm"></div>
+      <div class="desk__lamp desk__lamp--cool"></div>
+      <div class="desk__lamp desk__lamp--warm"></div>
+      <div class="desk__vignette"></div>
+      <div class="desk__weave"></div>
+      <div class="desk__grain"></div>
+    </div>
+
+    <div class="page">
+      <slot />
+    </div>
+
+    <script>
+      import { initEngine } from '../scripts/engine';
+      initEngine();
+    </script>
+  </body>
+</html>

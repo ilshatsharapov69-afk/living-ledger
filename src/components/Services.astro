@@ -1,0 +1,509 @@
+---
+/**
+ * Scope — the first section of the commercial half of the page.
+ *
+ * WHY THIS IS NOT A PINNED SCENE
+ *
+ * Everything above it is: four sticky frames where the visitor scrolls and is
+ * shown something. From here down the page is an ordinary page — normal flow,
+ * normal heights, entrance animation only. That change of rhythm is the point.
+ * After twenty seconds of being driven, a buyer wants solid ground and plain
+ * answers, and a fifth pinned scene would read as the site refusing to get to
+ * the point.
+ *
+ * WHY IT IS A CHECKLIST AND NOT A GRID OF SERVICES
+ *
+ * A month-end close checklist is a real artefact — every bookkeeper keeps one —
+ * and it argues something a feature grid cannot. Grouped by CADENCE rather than
+ * by category, it says "this is a system that runs" instead of "here are some
+ * things we offer", and the four groups answer the question a service list
+ * never does: how often, and do I have to ask?
+ *
+ * The boundary panel underneath is the cheapest trust on a professional
+ * services page, and almost nobody prints it. Saying plainly what you will not
+ * do makes everything above it believable.
+ */
+import { firm } from '../config/firm';
+import { services as copy } from '../config/content';
+import { em } from '../lib/format';
+
+/*
+ * The ticks are struck in reading order across the whole sheet, not per group,
+ * so the eye is pulled down one band and into the next rather than watching
+ * four lists fill at once. Index computed here so the CSS stays one rule.
+ */
+let tick = 0;
+const groups = firm.scope.map((g) => ({
+  cadence: g.cadence,
+  /* Two digits so the rail is a column of the same width all the way down —
+     the count is derived, so adding a line to firm.ts renumbers the rail. */
+  count: String(g.items.length).padStart(2, '0'),
+  at: tick,
+  items: g.items.map((text) => ({ text, i: tick++ })),
+}));
+const total = tick;
+
+/* The boundary, one list: what is out of scope, then who is out of range. */
+const boundary = [...firm.outOfScope, firm.niche.notFor];
+---
+
+<!--
+  span 2 = two viewports of scroll for the whole reveal.
+  In `enter` mode the scene's clock starts a viewport BEFORE the section's top
+  reaches the top of the screen, so `p` is already 1/span by the time the
+  section is flush — with the old 0.85 the entire cascade was over while the
+  checklist was still a strip at the very bottom of the window, which is a
+  animation nobody ever sees. Two viewports puts every gate below at the moment
+  the thing it moves is actually on screen; the arithmetic for that is in the
+  comment on `.grp__item`.
+-->
+<section class="svc" id="services" data-scene="services" data-scene-mode="enter" data-scene-span="2">
+  <div class="svc__frame frame">
+    <header class="svc__say">
+      <p class="svc__eyebrow u-caps">{copy.eyebrow}</p>
+      <h2 class="svc__heading">{copy.heading}</h2>
+      <p class="svc__line">{copy.line}</p>
+    </header>
+
+    <div class="svc__sheet sheet sheet--fibre" data-stock="bond">
+      <header class="svc__head">
+        <h3 class="svc__title">{copy.sheetTitle}</h3>
+        <p class="svc__meta">{copy.sheetMeta}</p>
+      </header>
+
+      <!--
+        One BAND per cadence, not one column. Four columns of a checklist look
+        tidy in a mock-up and fall apart on real content: this firm does three
+        things a week and seven a month, so the grid printed a long stripe next
+        to three short ones and a hole the size of a postcard. Bands let each
+        cadence take the width it needs and wrap inside itself, so nothing is
+        ragged and the whole sheet is a third shorter.
+      -->
+      <div class="svc__groups">
+        {
+          groups.map((g) => (
+            <section class="grp" style={`--at:${(g.at / total).toFixed(3)}`}>
+              <div class="grp__rail">
+                <b class="grp__count u-num">{g.count}</b>
+                <h4 class="grp__cadence u-caps">{g.cadence}</h4>
+              </div>
+              <ul class="grp__items">
+                {g.items.map((it) => (
+                  <li class="grp__item" style={`--at:${(it.i / total).toFixed(3)}`}>
+                    <svg class="grp__tick" viewBox="0 0 16 16" aria-hidden="true">
+                      <path pathLength="1" d="M2.5 8.6 L6.2 12.4 L13.6 3.4" />
+                    </svg>
+                    <span set:html={em(it.text)} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))
+        }
+      </div>
+    </div>
+
+    <!--
+      Three boundaries side by side rather than three paragraphs stacked. Same
+      words, a third of the apparent length, and the crossed marks make the
+      block scannable as "here is what they refuse" without reading a line.
+    -->
+    <aside class="svc__boundary">
+      <h3 class="svc__boundary-lead u-caps">{copy.boundaryLead}</h3>
+      <ul class="bound">
+        {
+          boundary.map((t, i) => (
+            <li class="bound__item" style={`--i:${i}`}>
+              <svg class="bound__mark" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M4.4 4.4 L11.6 11.6 M11.6 4.4 L4.4 11.6" />
+              </svg>
+              <p set:html={em(t)} />
+            </li>
+          ))
+        }
+      </ul>
+    </aside>
+
+    <!--
+      The niche, stated three ways in about forty words. The trades say we know
+      which end of the industry you are; the software says you will not be asked
+      to move; the band says we turn people away — which is the most
+      expensive-looking signal available and two firms in thirty use it.
+    -->
+    <div class="svc__niche">
+      <section class="niche">
+        <h3 class="niche__lead u-caps">{copy.tradesLead}</h3>
+        <ul class="niche__trades">
+          {firm.niche.trades.map((t) => <li>{t}</li>)}
+        </ul>
+      </section>
+
+      <section class="niche">
+        <h3 class="niche__lead u-caps">{copy.softwareLead}</h3>
+        <ul class="niche__software">
+          {firm.niche.software.map((s) => <li>{s}</li>)}
+        </ul>
+        <p class="niche__note">{copy.softwareNote}</p>
+      </section>
+    </div>
+  </div>
+</section>
+
+<style>
+  .svc {
+    position: relative;
+    z-index: 1;
+    padding-block: clamp(4.5rem, 12vh, 9rem) clamp(3rem, 8vh, 6rem);
+  }
+
+  .svc__frame {
+    display: grid;
+    gap: clamp(1.75rem, 4vh, 3rem);
+  }
+
+  /* ── the argument ─────────────────────────────────────────────────── */
+
+  .svc__say {
+    max-width: 46rem;
+  }
+
+  .svc__eyebrow {
+    font-size: var(--fs-2xs);
+    color: var(--brand-lit);
+  }
+
+  .svc__heading {
+    margin-top: 0.4rem;
+    font-size: var(--fs-2xl);
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -0.028em;
+    color: var(--desk-ink);
+    text-wrap: balance;
+  }
+
+  .svc__line {
+    margin-top: 0.75rem;
+    max-width: 58ch;
+    font-size: var(--fs-base);
+    line-height: 1.5;
+    color: var(--desk-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  /* ── the sheet ────────────────────────────────────────────────────── */
+
+  /*
+   * One wide sheet, printed the way a real close checklist is printed. It rises
+   * a little and settles as it enters — the only motion in the section, because
+   * from here down the page is a page.
+   */
+  .svc__sheet {
+    --in: clamp(0, calc((var(--p) - 0.2) / 0.16), 1);
+    padding: clamp(1.5rem, 3.5vw, 2.75rem) clamp(1.25rem, 3vw, 2.5rem);
+    box-shadow: var(--shadow-rest);
+    rotate: -0.25deg;
+    translate: 0 calc((1 - var(--in)) * 22px);
+    opacity: var(--in);
+  }
+
+  .svc__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1.5rem;
+    padding-bottom: 0.85rem;
+    border-bottom: max(1px, 0.1em) solid var(--paper-rule-strong);
+  }
+
+  .svc__title {
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--paper-ink);
+  }
+
+  .svc__meta {
+    font-size: var(--fs-xs);
+    color: var(--paper-ink-quiet);
+  }
+
+  .svc__groups {
+    margin-top: clamp(0.5rem, 1.5vh, 1rem);
+  }
+
+  /*
+   * A ruled band: the cadence on a rail down the left, the work to the right of
+   * it. The rule between bands is the sheet's own rule, so the checklist reads
+   * as one printed form rather than four boxes that happen to be adjacent.
+   */
+  .grp {
+    display: grid;
+    grid-template-columns: minmax(7.5rem, 11%) minmax(0, 1fr);
+    gap: clamp(1rem, 2.6vw, 2.25rem);
+    padding-block: clamp(0.9rem, 2.2vh, 1.35rem);
+    border-bottom: 1px solid var(--paper-rule);
+  }
+
+  .grp:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  /* Hairline down the rail, drawn on the rail itself so the gap stays clear. */
+  .grp__rail {
+    position: relative;
+    border-right: 1px solid var(--paper-rule);
+    padding-right: clamp(0.75rem, 1.8vw, 1.5rem);
+    /* Whole bands arrive on the first tick of their own group. */
+    --gf: clamp(0, calc((var(--p) - 0.24 - var(--at) * 0.3) / 0.08), 1);
+    opacity: var(--gf);
+    translate: 0 calc((1 - var(--gf)) * 5px);
+  }
+
+  /*
+   * How many things happen at this cadence, in the size that says it. Derived
+   * from the list, so it can never disagree with the list — which is the only
+   * reason a decorative numeral is allowed on a page that argues about numbers
+   * being right.
+   */
+  .grp__count {
+    display: block;
+    font-size: clamp(1.375rem, 0.95rem + 1.5vw, 2.125rem);
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: color-mix(in oklab, var(--brand-ink) 42%, var(--paper));
+  }
+
+  .grp__cadence {
+    margin-top: 0.3rem;
+    font-size: var(--fs-2xs);
+    color: var(--brand-ink);
+    text-wrap: nowrap;
+  }
+
+  /*
+   * Wrapping INSIDE the band. Three items make one row, seven make three, and
+   * neither leaves a hole — the band is only ever as tall as its own content.
+   */
+  .grp__items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 0.5rem clamp(1.25rem, 3vw, 2.5rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .grp__item {
+    /*
+     * Struck in reading order across the whole sheet. `--at` is this line's
+     * place in that order, so the sweep is one expression rather than sixteen
+     * hand-written delays, and adding a line to firm.ts re-spaces the rest.
+     *
+     * The window comes off the geometry, not off taste. With `enter` and a span
+     * of S viewports, an element D pixels down the section clears the bottom of
+     * the screen at p = D / (S · vh). The checklist runs from about 420px to
+     * about 900px into the section, so at S=2 on a 900-tall window it is on
+     * screen from p≈0.23 to p≈0.50 — and the cascade below covers 0.26 to 0.62,
+     * i.e. every tick is struck while somebody can see it.
+     */
+    --f: clamp(0, calc((var(--p) - 0.26 - var(--at) * 0.3) / 0.08), 1);
+    display: grid;
+    grid-template-columns: 1.15em minmax(0, 1fr);
+    gap: 0.55em;
+    align-items: start;
+    font-size: var(--fs-sm);
+    line-height: 1.45;
+    color: var(--paper-ink-quiet);
+    text-wrap: pretty;
+    /* The line arrives with its own tick, not before it. */
+    opacity: var(--f);
+    translate: 0 calc((1 - var(--f)) * 4px);
+  }
+
+  .grp__tick {
+    width: 1.15em;
+    height: 1.15em;
+    margin-top: 0.16em;
+    fill: none;
+    stroke: var(--brand-ink);
+    stroke-width: 2.1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    /* Drawn, not revealed. No vector-effect — see lesson 7 in STATE.md. */
+    stroke-dasharray: 1;
+    stroke-dashoffset: calc(1 - var(--f));
+  }
+
+  /* ── the boundary ─────────────────────────────────────────────────── */
+
+  /*
+   * Off the paper and back on the desk, on purpose. The checklist is what the
+   * firm hands over; this is the firm talking, and it should not look like
+   * another printed clause.
+   */
+  .svc__boundary {
+    display: grid;
+    gap: clamp(0.9rem, 2.2vh, 1.35rem);
+  }
+
+  .svc__boundary-lead {
+    font-size: var(--fs-2xs);
+    color: var(--desk-ink);
+  }
+
+  .bound {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: clamp(1rem, 2.5vw, 2rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /*
+   * Each boundary hangs off its own rule, one behind the other. The stagger is
+   * on the rule and the mark, not on the words — text that slides is harder to
+   * read, and this block is the one place on the page where being believed
+   * depends on being read.
+   */
+  .bound__item {
+    --f: clamp(0, calc((var(--p) - 0.62 - var(--i) * 0.04) / 0.08), 1);
+    display: grid;
+    grid-template-columns: 1.1em minmax(0, 1fr);
+    gap: 0.6em;
+    align-items: start;
+    padding-top: clamp(0.6rem, 1.6vh, 0.9rem);
+    border-top: 2px solid color-mix(in oklab, var(--desk-mark) 70%, transparent);
+    opacity: var(--f);
+  }
+
+  .bound__mark {
+    width: 1.1em;
+    height: 1.1em;
+    margin-top: 0.14em;
+    fill: none;
+    stroke: var(--desk-mark);
+    stroke-width: 2;
+    stroke-linecap: round;
+    rotate: calc((1 - var(--f)) * -25deg);
+  }
+
+  .bound__item p {
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    color: var(--desk-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  /* ── the niche ────────────────────────────────────────────────────── */
+
+  /*
+   * Ruled off as a footer to the section, because that is what it is: who this
+   * is for, and what they already run. Two columns of equal weight — the trades
+   * prove the firm knows the industry, the wordmarks prove nobody has to move.
+   */
+  .svc__niche {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+    gap: clamp(1.25rem, 3vw, 3rem);
+    padding-top: clamp(1rem, 2.5vh, 1.6rem);
+    border-top: 1px solid color-mix(in oklab, var(--desk-mark) 40%, transparent);
+    opacity: clamp(0, calc((var(--p) - 0.76) / 0.12), 1);
+  }
+
+  .niche__lead {
+    font-size: var(--fs-2xs);
+    color: var(--desk-ink-quiet);
+  }
+
+  .niche__trades,
+  .niche__software {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.5rem;
+    margin: 0.7rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /*
+   * Outlined, where the software wordmarks are filled. Both are chips, so the
+   * two halves of the footer are visibly the same kind of statement — but one
+   * is drawn on the desk and one is printed on paper, which is the difference
+   * between "who we work for" and "what is already installed".
+   *
+   * They were a dot-separated line until the wrap left a hanging separator at
+   * the end of the first row. Chips cannot do that.
+   */
+  .niche__trades li {
+    padding: 0.3em 0.7em 0.34em;
+    font-size: var(--fs-xs);
+    line-height: 1.4;
+    color: var(--desk-ink);
+    border: 1px solid color-mix(in oklab, var(--desk-mark) 55%, transparent);
+    border-radius: 2px;
+  }
+
+  /*
+   * Wordmarks on a strip of the page's own paper. No logo images anywhere —
+   * they would break the desk, and this reads as a deliberate line of type
+   * where a row of greyscale PNGs reads as a widget bolted on.
+   */
+  .niche__software li {
+    padding: 0.3em 0.7em 0.34em;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    letter-spacing: 0.02em;
+    color: var(--paper-ink);
+    background: var(--stock-bond);
+    border-radius: 2px;
+    box-shadow: var(--shadow-flat);
+  }
+
+  .niche__note {
+    margin-top: 0.7rem;
+    max-width: 46ch;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    color: var(--desk-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  /* No room for a rail. The cadence becomes a heading over its own band and the
+     numeral sits beside it, which keeps the count without the column. */
+  @media (max-width: 700px) {
+    .grp {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.7rem;
+    }
+
+    .grp__rail {
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+      padding-right: 0;
+      border-right: 0;
+    }
+
+    .grp__count {
+      font-size: var(--fs-lg);
+    }
+
+    .grp__cadence {
+      margin-top: 0;
+    }
+  }
+
+  /* The entrance is a courtesy, not the content. */
+  @media (prefers-reduced-motion: reduce) {
+    .svc__sheet {
+      translate: none;
+    }
+  }
+</style>

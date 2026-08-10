@@ -1,0 +1,184 @@
+---
+/**
+ * The heading band that sits across the top of a pinned scene.
+ *
+ * Every beat of the story gets a heading and a line, in the ordinary place a
+ * heading goes — before the thing it describes. This is the piece that keeps
+ * the site a website rather than a silent film: the paper below illustrates the
+ * sentence above, and a visitor who looks away and back can still tell what he
+ * is being shown.
+ *
+ * All beats share one grid cell and cross-fade, so the band reserves the height
+ * of the tallest of them and the paper underneath never has to guess where the
+ * words stop. Each beat also gets a `data-vis` range so the engine can take it
+ * out of the accessibility tree when its moment has passed — opacity alone
+ * leaves an invisible heading in the middle of the desk for a screen reader to
+ * read out.
+ */
+export interface Beat {
+  eyebrow: string;
+  heading: string;
+  line?: string;
+  /**
+   * Scene progress at which it arrives.
+   *
+   * Zero means "already there" — not "fades in from nothing over the first
+   * frame". A scene's progress is nought until its top reaches the top of the
+   * viewport, so a heading ramped from nought is invisible for the whole
+   * approach and then snaps on at the instant the previous scene lets go. If
+   * the paper below is what enters, the heading has to have entered with it.
+   */
+  from: number;
+  /** Scene progress at which it leaves. Omit if it is the scene's last beat. */
+  to?: number;
+}
+
+interface Props {
+  beats: Beat[];
+  /** How much progress the cross-fade takes. */
+  fade?: number;
+}
+
+import { em } from '../lib/format';
+
+const { beats, fade = 0.06 } = Astro.props;
+
+const resolve = (b: Beat) => {
+  const arrive = b.from <= 0 ? '1' : `clamp(0, calc((var(--p) - ${b.from}) / ${fade}), 1)`;
+  const leave = b.to === undefined ? null : `clamp(0, calc((${b.to} - var(--p)) / ${fade}), 1)`;
+  return {
+    opacity: leave ? `min(${arrive}, ${leave})` : arrive,
+    vis: `${Math.max(0, b.from - fade / 2)} ${b.to === undefined ? 1 : b.to + fade / 2}`,
+  };
+};
+---
+
+<div class="band">
+  {
+    beats.map((b) => {
+      const { opacity, vis } = resolve(b);
+      return (
+        <div class="band__beat" data-vis={vis} style={`opacity:${opacity}`}>
+          <p class="band__eyebrow u-caps">
+            <span class="band__eyebrow-text">{b.eyebrow}</span>
+          </p>
+          <h2 class="band__heading">{b.heading}</h2>
+          {b.line && <p class="band__line" set:html={em(b.line)} />}
+        </div>
+      );
+    })
+  }
+</div>
+
+<style>
+  .band {
+    position: absolute;
+    top: calc(var(--mast-h) + clamp(0.6rem, 2.2vh, 1.6rem));
+    left: 50%;
+    z-index: 2;
+    display: grid;
+    width: min(50rem, calc(100% - 2 * var(--gutter)));
+    translate: -50% 0;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .band__beat {
+    grid-area: 1 / 1;
+  }
+
+  /* A chapter marker, not a label: the step is ruled off from the desk on both
+     sides the way a divider is ruled in a bound report. The rules are what make
+     it read as structure — the same words without them read as a caption that
+     came loose. */
+  .band__eyebrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(0.5rem, 1.2vw, 0.9rem);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: 0.17em;
+    color: var(--brand-lit);
+  }
+
+  .band__eyebrow::before,
+  .band__eyebrow::after {
+    content: '';
+    width: clamp(1.25rem, 4vw, 3.25rem);
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--brand-halo));
+  }
+
+  .band__eyebrow::after {
+    background: linear-gradient(to left, transparent, var(--brand-halo));
+  }
+
+  .band__eyebrow-text {
+    /* The tracking pushes the last letter off the optical centre. */
+    margin-right: -0.17em;
+  }
+
+  .band__heading {
+    margin-top: 0.5rem;
+    font-size: var(--fs-beat);
+    font-weight: 600;
+    line-height: 1.06;
+    letter-spacing: -0.03em;
+    color: var(--desk-ink);
+    text-wrap: balance;
+  }
+
+  .band__line {
+    margin-inline: auto;
+    margin-top: 0.7rem;
+    max-width: 58ch;
+    font-size: var(--fs-lg);
+    line-height: 1.45;
+    color: var(--desk-ink-quiet);
+    text-wrap: pretty;
+  }
+
+  @media (max-width: 900px) {
+    .band {
+      width: calc(100% - 2 * var(--gutter));
+    }
+
+    .band__line {
+      font-size: var(--fs-sm);
+      max-width: 46ch;
+    }
+  }
+
+  /* A short laptop is the size these scenes actually run out of room on: the
+     band, the paper and the running total all want the same vertical inches. */
+  @media (min-width: 901px) and (max-height: 880px) {
+    .band__line {
+      font-size: var(--fs-base);
+    }
+  }
+
+  @media (min-width: 901px) and (max-height: 780px) {
+    .band__heading {
+      font-size: clamp(1.625rem, 1.1rem + 1.7vw, 2.375rem);
+    }
+
+    .band__line {
+      font-size: var(--fs-sm);
+    }
+  }
+
+  @media (max-width: 900px) and (max-height: 790px) {
+    .band__line {
+      font-size: var(--fs-xs);
+      max-width: 40ch;
+    }
+  }
+
+  /* Short phone: the heading has to give up its supporting line. */
+  @media (max-width: 900px) and (max-height: 720px) {
+    .band__line {
+      display: none;
+    }
+  }
+</style>

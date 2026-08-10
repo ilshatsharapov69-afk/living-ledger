@@ -1,0 +1,122 @@
+---
+/**
+ * The thumb-reach ask, on phones only.
+ *
+ * WHY IT APPEARS WHEN IT DOES
+ *
+ * It takes over the slot the corner read-out vacates. During the story that bar
+ * belongs to `LedgerStrip`, and the header's own button is on screen the whole
+ * time anyway — a second call to action competing with a live read-out would be
+ * two things shouting in a strip forty pixels tall. So this fades in on
+ * `--past-story`, exactly as the read-out fades out, and there is never a
+ * moment with both or with neither.
+ *
+ * WHY IT EXISTS AT ALL
+ *
+ * The owner finds accountants in Facebook groups. The demo link is opened on a
+ * phone, in a messaging app, one-handed — that is the actual first impression,
+ * and everything below the reach of a thumb costs a scroll the visitor may not
+ * make.
+ *
+ * Desktop never sees it: there the header button is always in the corner of the
+ * eye and a fixed bar would just eat the desk.
+ */
+import { firm } from '../config/firm';
+import { book } from '../config/content';
+import { href } from '../lib/url';
+---
+
+<div class="ask" aria-hidden="false">
+  <a class="ask__cta" href={href(firm.contact.calendarUrl)}>
+    <span class="ask__label">{firm.cta.primary}</span>
+    <span class="ask__hint">{firm.cta.primaryHint}</span>
+  </a>
+  <a class="ask__call" href={firm.contact.phoneHref} aria-label={`${book.orCall} ${firm.contact.phone}`}>
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M6.5 3.5h3l1.5 4-2 1.4a12 12 0 0 0 6.1 6.1l1.4-2 4 1.5v3a2 2 0 0 1-2.2 2A17 17 0 0 1 4.5 5.7 2 2 0 0 1 6.5 3.5Z"
+      ></path>
+    </svg>
+  </a>
+</div>
+
+<style>
+  .ask {
+    display: none;
+  }
+
+  @media (max-width: 620px) {
+    .ask {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: var(--z-strip);
+      display: flex;
+      align-items: stretch;
+      gap: 0.5rem;
+      padding: 0.55rem var(--gutter) calc(0.55rem + env(safe-area-inset-bottom, 0px));
+      background: color-mix(in oklab, var(--desk-cool) 88%, transparent);
+      backdrop-filter: blur(7px);
+      border-top: 1px solid var(--desk-edge);
+      /* Hands over from the corner read-out at exactly the moment it retires. */
+      opacity: var(--past-story);
+      translate: 0 calc((1 - var(--past-story)) * 100%);
+      pointer-events: none;
+    }
+
+    /* Not clickable while it is still arriving, so a tap aimed at the page
+       underneath during the hand-over cannot land on a button sliding in. */
+    :global(html) .ask {
+      pointer-events: auto;
+    }
+
+    .ask__cta {
+      display: grid;
+      flex: 1;
+      place-content: center;
+      justify-items: center;
+      gap: 0.05rem;
+      /* Comfortably past the 44px tap target, and reachable one-handed. */
+      min-height: 3rem;
+      padding: 0.5rem 1rem;
+      color: var(--brand-on-solid);
+      background: var(--brand-solid);
+      border-radius: 3px;
+      box-shadow: var(--shadow-flat);
+    }
+
+    .ask__label {
+      font-size: var(--fs-base);
+      font-weight: 580;
+      line-height: 1.1;
+    }
+
+    .ask__hint {
+      font-size: var(--fs-2xs);
+      opacity: 0.82;
+    }
+
+    .ask__call {
+      display: grid;
+      place-content: center;
+      min-width: 3rem;
+      min-height: 3rem;
+      color: var(--desk-ink);
+      border: 1px solid var(--desk-mark);
+      border-radius: 3px;
+    }
+
+    .ask__call svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      fill: currentColor;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ask {
+      translate: none;
+    }
+  }
+</style>

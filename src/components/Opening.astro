@@ -1,0 +1,1448 @@
+---
+/**
+ * Scene 0–1: a month arrives, and the first piece of work gets done to it.
+ *
+ * WHAT THIS SCENE ARGUES, AND WHY IT IS BUILT THIS WAY.
+ *
+ * The order of events is the argument. A month does not arrive sorted; it
+ * arrives as a heap, and somebody sorts it. So the paper goes:
+ *
+ *   edges (illegible)  →  a heap in the middle  →  five named documents
+ *
+ * and not the other way round. An earlier version had the sheets tidy
+ * themselves into a grid and then collapse into a pile, which is the same
+ * motion played backwards: it looked like work being undone, it proved nothing,
+ * and the number at the end of it was a number the visitor had no reason to
+ * care about. Chaos → order, in that direction, is the whole thesis of the
+ * site; every scene has to run that way.
+ *
+ * Each beat carries a heading and a line of copy, in the ordinary place a
+ * heading goes — across the top, before the thing it describes. The animation
+ * illustrates the sentence. It does not replace it. A pinned section that moves
+ * paper in silence is a screensaver, and a visitor who has to reverse-engineer
+ * what he just watched has already gone.
+ *
+ * The $84,200 is the PROBLEM, not the payoff: money that moved through a
+ * business with not one line of it checked. It sets up the work rather than
+ * concluding it.
+ *
+ * COMPOSITION AT REST
+ *
+ * The middle of the screen is a cleared patch of desk — the space someone
+ * pushed the paper aside to make. Everything that converts lives in the
+ * clearing; the paper is pushed to the edges of the frame, cropped and
+ * illegible. Two consequences: the CTA cannot be covered, because the centre is
+ * empty by construction, and there is no seam, because a clearing in a covered
+ * desk is one image rather than two columns pretending to be one.
+ *
+ * Density is deliberately uneven — heavy down the right and along the bottom,
+ * nothing in the top-left. An even border of paper reads as a certificate.
+ *
+ * Every sheet's life is nine numbers: where it rests (--cx/--cy/--crot), where
+ * it heaps (--mx/--my/--mrot/--ms), where it is laid out (--tx/--ty/--trot/--ts)
+ * and when it moves (--d1/--d2). One expression drives all nine.
+ *
+ * Layers per document, outermost first:
+ *   .slot   the journey — position, rotation, scale, shadow. Driven by --p.
+ *   .drift  the wind, damped to nothing as the sheet joins the order.
+ *   .float  ambient breathing, same damping, and the sheet's one font size.
+ */
+import DocFace from './paper/DocFace.astro';
+import BeatBand from './BeatBand.astro';
+import { firm } from '../config/firm';
+import { hero, beats } from '../config/content';
+import { docById, clutter } from '../config/story';
+import { em } from '../lib/format';
+import { RUN } from '../config/scenes';
+import { href } from '../lib/url';
+
+/**
+ * Sorting order, which is also reading order in the laid-out grid: the eye
+ * travels left to right, top to bottom, and finishes on the biggest number.
+ * z-index rises the same way, so a sheet can only ever be covered on the side
+ * you have already read.
+ */
+const ORDER = ['operating', 'tax', 'payroll', 'bank', 'invoices'];
+const sheets = ORDER.map((id, i) => ({ doc: docById[id]!, z: 10 + i * 2 }));
+const noise = clutter.map((doc, i) => ({ doc, z: 11 + i * 2 }));
+---
+
+<section class="opening" data-scene="opening" id="top" style={`--run:${RUN.opening}`}>
+  <div class="opening__pin">
+    <!--
+      Pencil, on the desk UNDER the paper.
+
+      EVERY MARK RUNS FROM THE CENTRE OF ONE SHEET TO THE CENTRE OF ANOTHER, and
+      that rule is the whole reason this finally works. Three earlier versions
+      ended a line near the EDGE of the sheet it pointed at — at a hand-picked
+      percentage of the frame — and every one of them came out with the mark
+      stopping in mid-air short of the paper, or crossing over it. It could not
+      have done anything else: where a sheet's edge falls depends on the
+      viewport height, the letterhead, the heading band and the type size, and a
+      number typed into a path knows none of those. The two could only agree at
+      the one width they were tuned on.
+
+      A sheet's CENTRE, though, is exactly the coordinate the sheet is
+      positioned by — `--tx`, `--ty` below, the same numbers, in the same
+      hundredths of the frame. So both ends of every mark are underneath paper
+      by construction, at every size, and only the middle is ever seen. There is
+      nothing left to tune and nothing left to break.
+
+      Which sheet a mark points at is the argument. The three cost documents run
+      into the two records the next scene checks against each other.
+
+      TWO MORE MARKS USED TO RUN OFF THE BOTTOM EDGE, to be picked up by the next
+      scene at the same x, on the theory that a line continuing past the fold is
+      a reason to keep scrolling. It never read that way. What it actually
+      produced was two hairlines hanging in empty desk above the next scene's
+      documents, pointing at nothing, for the whole length of the join — and it
+      cost two rounds of geometry to make them meet before it was obvious that
+      meeting was not the problem. They are gone, and so is the pair that
+      answered them below. The scene's own three marks fade out with it.
+
+      NO vector-effect here, and that is deliberate. non-scaling-stroke measures
+      the dash pattern in screen pixels, so `stroke-dasharray: 1` stops meaning
+      "one dash the length of the path" and starts meaning "dashes one pixel
+      long" — a dotted line, fully drawn, visible from the first screen, with
+      the draw-on animation doing nothing but sliding the dots. Without it the
+      dashes are in user units, pathLength normalises them to 1, and the line
+      draws itself properly. The cost is that stroke width is stretched with the
+      viewBox, which is why it is written in user units below.
+    -->
+    <svg class="trace" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <!-- (50 + --tx, 50 + --ty) of the sheet each end sits on. Nothing else. -->
+      <path style="--d: 0.6" pathLength="1" d="M31 47 C31 60, 40 60, 40 72"></path>
+      <path style="--d: 0.66" pathLength="1" d="M46.8 47 C46.8 58, 40 62, 40 72"></path>
+      <path style="--d: 0.72" pathLength="1" d="M66 47 C66 58, 60 62, 60 72"></path>
+    </svg>
+
+    <!-- The desk. Everything here is cropped by the frame on purpose. -->
+    <div class="spread" data-pointer>
+      {
+        noise.map(({ doc, z }) => (
+          <div class={`slot slot--noise slot--${doc.id}`} style={`z-index:${z}`}>
+            <div class="drift">
+              <div class="float">
+                <DocFace doc={doc} variant="display" preview />
+              </div>
+            </div>
+          </div>
+        ))
+      }
+      {
+        sheets.map(({ doc, z }) => (
+          <div class={`slot slot--${doc.id}`} style={`z-index:${z}`}>
+            <div class="drift">
+              <div class="float">
+                <DocFace doc={doc} variant="display" />
+              </div>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+
+    <!-- The clearing. -->
+    <div class="opening__copy frame">
+      <div class="say say--hero" data-vis="0 0.15">
+        <h1 class="say__headline">
+          <span class="say__line-a">{firm.discipline}</span>
+          <span class="say__line-b">
+            for {firm.audience.clientType} in {firm.audience.homeState}.
+          </span>
+        </h1>
+
+        <p class="say__promise" set:html={em(hero.promise)} />
+
+        <div class="say__act">
+          <span class="say__cta">
+            <svg class="say__arrow" viewBox="0 0 88 66" aria-hidden="true">
+              <path pathLength="1" d="M5 5c1.5 20 8.5 35.5 22.5 44.5C37 55.5 50 58.5 66 59"></path>
+              <path pathLength="1" d="M53 51c5 2.5 9.5 5 13 8-4.5 1.5-8.5 3.5-12 6.5"></path>
+            </svg>
+            <a class="stamp" href={href(firm.contact.calendarUrl)}>
+              <span class="stamp__label">{hero.cta}</span>
+            </a>
+          </span>
+          <span class="say__hint">{hero.ctaHint}</span>
+        </div>
+
+        <ul class="say__proof">
+          {hero.chips.map((chip) => <li class="say__chip">{chip}</li>)}
+        </ul>
+
+        <p class="say__cue" aria-hidden="true">
+          <span class="say__cue-rule"></span>
+          <span class="say__cue-text u-caps">{hero.scrollCue}</span>
+        </p>
+      </div>
+    </div>
+
+    <BeatBand
+      beats={[
+        { ...beats.arrive, from: 0.08, to: 0.46 },
+        { ...beats.sort, from: 0.45 },
+      ]}
+    />
+
+    <!-- What the heap is worth, before anybody has checked it. -->
+    <div class="tally" data-vis="0.11 0.48" aria-hidden="true">
+      <p
+        class="tally__figure u-num"
+        data-count-to={beats.arrive.tally}
+        data-count-at="0.17 0.37"
+        data-count-fmt="usd0"
+      >
+        $0
+      </p>
+      <p class="tally__line">
+        {beats.arrive.tallyLabel} · <em>{beats.arrive.tallyNote}</em>
+      </p>
+    </div>
+
+    <!--
+      The honesty label. Every demo of this template carries the same fictional
+      March, and this line is what makes a worked example a worked example
+      rather than a claim about somebody's results.
+
+      It is a SIBLING of the tally, not a third line inside it. Inside, it made
+      the block twenty pixels taller and the paper immediately started landing
+      on it at 1024 and above — the guard boxes in the sweep are drawn round
+      whatever the visitor is reading, and the tally had quietly grown into the
+      paper's airspace. Out here it costs the composition nothing, and it shares
+      the foot of the frame with `.onward`, which is never up at the same time.
+    -->
+    <p class="slug u-caps" data-vis="0.1 0.5" aria-hidden="true">{hero.pileCaption}</p>
+
+    <!-- Hands the visitor the next question at the moment this one resolves. -->
+    <p class="onward u-caps" data-vis="0.84 1" aria-hidden="true">{beats.sort.next}</p>
+  </div>
+</section>
+
+<style>
+  .opening {
+    /*
+     * One viewport of pin plus the scroll the whole journey is allowed to take.
+     * The last sheet is laid out at 83% of that; the rest is the pause the brief
+     * asks for — a beat that resolves and then holds reads as confident.
+     *
+     * `--run` is printed from scenes.ts, which is also what the corner strip
+     * divides by. The narrow override below gives this scene ten more vh and is
+     * deliberately NOT fed back into that arithmetic: it moves the strip's
+     * states by under three per cent, which is inside their own cross-fade.
+     */
+    height: calc(100svh + var(--run) * 1vh);
+  }
+
+  .opening__pin {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    padding-top: var(--mast-h);
+    overflow: clip;
+
+    /*
+     * One foot line for the three things that live at the bottom of this frame.
+     * They used to carry three similar-but-different clamps, which is how the
+     * tally and the slug ended up printing on the same row of pixels: nothing
+     * in the code said they shared an edge, so nothing stopped them.
+     */
+    --foot: clamp(0.75rem, 3vh, 2rem);
+    --tally-lift: 0.5rem;
+  }
+
+  /* ── the clearing ─────────────────────────────────────────────────── */
+
+  .opening__copy {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    height: 100%;
+    padding-bottom: clamp(0.5rem, 2vh, 2rem);
+    pointer-events: none;
+  }
+
+  .say--hero {
+    /* Held to a constant fraction of the viewport rather than a constant number
+       of pixels, because the ring outside it is measured in the same units — the
+       clearing and the paper around it have to agree at every width. */
+    max-width: min(46rem, 56vw);
+    text-align: center;
+    pointer-events: auto;
+    opacity: clamp(0, calc(1 - (var(--p) - 0.015) / 0.11), 1);
+    translate: 0 calc(clamp(0, calc((var(--p) - 0.015) / 0.11), 1) * -34px);
+  }
+
+  /*
+   * TWO VOICES, NOT TWO SIZES.
+   *
+   * This was one family in one ink at two sizes, and it read as a paragraph
+   * somebody had set large — nothing in it told the eye where the sentence
+   * turned. The turn is the interesting part: the first line is what the firm
+   * does, and the second is WHO IT IS FOR, which is the only clause a rescin
+   * ever changes and the only one a visitor checks himself against.
+   *
+   * So the second clause changes voice as well as size — the serif, in the
+   * brand's ink. It is the one place on the first screen where the brand colour
+   * lands on a word rather than on a button, which is most of why the screen
+   * stopped looking monochrome.
+   */
+  .say__headline {
+    font-weight: 400;
+    text-wrap: balance;
+  }
+
+  .say__line-a {
+    display: block;
+    font-size: var(--fs-hero);
+    font-weight: 620;
+    line-height: 1.02;
+    letter-spacing: -0.033em;
+    color: var(--desk-ink);
+  }
+
+  .say__line-b {
+    display: block;
+    margin-top: 0.4rem;
+    font-family: var(--font-serif);
+    font-size: clamp(1.5rem, 1.05rem + 1.9vw, 2.375rem);
+    font-weight: 400;
+    font-style: italic;
+    line-height: 1.14;
+    letter-spacing: -0.008em;
+    color: var(--brand-lit);
+  }
+
+  .say__promise {
+    margin-inline: auto;
+    margin-top: clamp(0.9rem, 2.2vh, 1.4rem);
+    max-width: 42ch;
+    font-size: var(--fs-lg);
+    line-height: 1.42;
+    color: var(--desk-ink-quiet);
+  }
+
+  .say__act {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem 1.25rem;
+    margin-top: clamp(1.25rem, 3.2vh, 2rem);
+  }
+
+  .say__cta {
+    position: relative;
+    display: inline-flex;
+  }
+
+  /* The CTA is a stamp, not a rectangle: a double keyline, set slightly off
+     square, that presses flat when you push it. */
+  .stamp {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding: 1rem 2.1rem;
+    background: var(--brand-solid);
+    color: var(--brand-on-solid);
+    border-radius: 3px;
+    rotate: -1.1deg;
+    box-shadow: var(--shadow-rest);
+    transition:
+      rotate var(--t-base) var(--ease-paper),
+      translate var(--t-fast) var(--ease-snap),
+      box-shadow var(--t-fast) var(--ease-snap);
+  }
+
+  .stamp::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid color-mix(in oklab, var(--brand-on-solid) 42%, transparent);
+    border-radius: 1px;
+    pointer-events: none;
+  }
+
+  .stamp__label {
+    font-size: var(--fs-base);
+    font-weight: 580;
+    letter-spacing: -0.004em;
+  }
+
+  /*
+   * THE ONLY THING ON THIS PAGE THAT ASKS FOR ATTENTION ON A LOOP.
+   *
+   * A rubber stamp does not glow and it does not bounce. What it does is press
+   * — and the mark of a press is the ring of ink that spreads out from under it
+   * and dies. So the button gives off one ring every four and a half seconds,
+   * from its own edge, in its own colour, and nothing else moves.
+   *
+   * It is a pseudo-element and not the button, which matters: an `animation` on
+   * `translate` would outrank the `:hover` translate in the cascade and the
+   * button would refuse to lift under the cursor. And it stops the moment
+   * somebody hovers or tabs to it — a control that keeps waving after you have
+   * found it is a control that does not know you are there.
+   */
+  .stamp::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border: 2px solid var(--brand-solid);
+    border-radius: 5px;
+    opacity: 0;
+    pointer-events: none;
+    animation: stamp-halo 4.4s var(--ease-paper) 2.2s infinite;
+  }
+
+  @keyframes stamp-halo {
+    0% {
+      scale: 1 1;
+      opacity: 0.5;
+    }
+    58%,
+    100% {
+      scale: 1.11 1.34;
+      opacity: 0;
+    }
+  }
+
+  .stamp:hover::after,
+  .stamp:focus-visible::after {
+    animation: none;
+  }
+
+  .stamp:hover {
+    rotate: 0deg;
+    translate: 0 -2px;
+    box-shadow: var(--shadow-lift);
+  }
+
+  .stamp:active {
+    translate: 0 1px;
+    box-shadow: var(--shadow-flat);
+  }
+
+  /* Somebody drew this in on the printout. It arrives a beat after the page has
+     settled, so it reads as a mark made rather than an element that loaded. */
+  .say__arrow {
+    position: absolute;
+    right: calc(100% + 0.35rem);
+    bottom: 0.55rem;
+    width: 5.5rem;
+    height: auto;
+    fill: none;
+    stroke: var(--desk-mark);
+    stroke-width: 2.1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.85;
+    pointer-events: none;
+  }
+
+  .say__arrow path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: draw-in 620ms var(--ease-seek) forwards;
+  }
+
+  .say__arrow path:first-child {
+    animation-delay: 1.15s;
+  }
+
+  .say__arrow path:last-child {
+    animation-delay: 1.62s;
+  }
+
+  @keyframes draw-in {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .say__hint {
+    font-size: var(--fs-sm);
+    color: var(--desk-ink-quiet);
+  }
+
+  .say__proof {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.45rem 0.55rem;
+    margin-top: clamp(1rem, 2.6vh, 1.6rem);
+    padding: 0;
+    list-style: none;
+  }
+
+  /*
+   * Three facts, as three objects.
+   *
+   * They were three lines of grey mono with a tick in front, floating on bare
+   * desk — which is how a caption looks, not how proof looks. On a desk made of
+   * paper the way to make something matter is to give it paper: a small ticket,
+   * lying slightly out of true, catching the same light as everything else.
+   */
+  .say__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.34rem 0.7rem 0.36rem;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    letter-spacing: -0.012em;
+    color: var(--paper-ink);
+    background: var(--paper);
+    border-radius: 2px;
+    white-space: nowrap;
+    box-shadow:
+      inset 0 0 0 1px var(--paper-rule),
+      var(--shadow-flat);
+  }
+
+  .say__chip::before {
+    content: '✓';
+    font-size: 0.95em;
+    line-height: 1;
+    color: var(--brand-ink);
+  }
+
+  /* Nothing on a desk is square to the desk. */
+  .say__chip:nth-child(odd) {
+    rotate: -0.5deg;
+  }
+
+  .say__chip:nth-child(even) {
+    rotate: 0.6deg;
+  }
+
+  .say__cue {
+    display: grid;
+    justify-items: center;
+    gap: 0.45rem;
+    margin-top: clamp(1.4rem, 4.5vh, 3rem);
+    pointer-events: none;
+  }
+
+  .say__cue-rule {
+    width: 1px;
+    height: clamp(1.25rem, 3.4vh, 2.25rem);
+    background: linear-gradient(var(--desk-mark), transparent);
+    transform-origin: top;
+    animation: cue-drop 2.8s var(--ease-seek) infinite;
+  }
+
+  @keyframes cue-drop {
+    0%,
+    62%,
+    100% {
+      scale: 1 1;
+      opacity: 0.8;
+    }
+    31% {
+      scale: 1 0.42;
+      opacity: 1;
+    }
+  }
+
+  .say__cue-text {
+    font-size: var(--fs-2xs);
+    letter-spacing: 0.16em;
+    color: var(--desk-mark);
+  }
+
+  /* ── what the heap is worth ───────────────────────────────────────── */
+
+  .tally {
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--foot) + var(--tally-lift));
+    z-index: 2;
+    width: min(40rem, calc(100% - 2 * var(--gutter)));
+    text-align: center;
+    pointer-events: none;
+    --in: min(
+      clamp(0, calc((var(--p) - 0.14) / 0.05), 1),
+      clamp(0, calc((0.46 - var(--p)) / 0.05), 1)
+    );
+    opacity: var(--in);
+    translate: -50% calc((1 - var(--in)) * 16px);
+  }
+
+  .tally__figure {
+    font-size: clamp(2.25rem, 1.4rem + 3.4vw, 4.25rem);
+    font-weight: 450;
+    line-height: 1;
+    letter-spacing: -0.045em;
+    color: var(--desk-ink);
+  }
+
+  .tally__line {
+    margin-top: 0.4rem;
+    font-size: var(--fs-base);
+    line-height: 1.35;
+    color: var(--desk-ink-quiet);
+    text-wrap: balance;
+  }
+
+  .tally__line em {
+    font-style: normal;
+    color: var(--desk-ink);
+  }
+
+  /*
+   * A printer's slug, in the corner of the proof.
+   *
+   * It used to be centred at the foot of the frame — at the same `bottom` as
+   * the tally, which is a block with a line of copy at ITS foot. The two
+   * printed straight through each other at 900px tall: "moved through the
+   * business in March" and "Illustrative figures · March · USD" occupying one
+   * line of pixels. Two things anchored to the same edge of the same box will
+   * always find each other; the fix is not more clearance, it is a different
+   * corner. Bottom right is empty desk in every state of this scene, and the
+   * bottom left already belongs to the running strip.
+   */
+  .slug {
+    position: absolute;
+    right: var(--gutter);
+    bottom: var(--foot);
+    z-index: 2;
+    font-size: var(--fs-2xs);
+    letter-spacing: 0.1em;
+    color: var(--desk-mark);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: min(
+      clamp(0, calc((var(--p) - 0.14) / 0.05), 1),
+      clamp(0, calc((0.46 - var(--p)) / 0.05), 1)
+    );
+  }
+
+  /* ── the next question ────────────────────────────────────────────── */
+
+  .onward {
+    position: absolute;
+    left: 50%;
+    bottom: var(--foot);
+    z-index: 2;
+    font-size: var(--fs-2xs);
+    letter-spacing: 0.14em;
+    color: var(--desk-mark);
+    white-space: nowrap;
+    translate: -50% 0;
+    pointer-events: none;
+    opacity: clamp(0, calc((var(--p) - 0.85) / 0.06), 1);
+  }
+
+  /* ── the paper ────────────────────────────────────────────────────── */
+
+  /* Covers the whole frame including the strip behind the letterhead, so paper
+     can run under the header the way it would on a real desk. */
+  .spread {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    container-type: size;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .slot {
+    /*
+     * Width is capped in BOTH axes: --w hundredths of the frame's width, and
+     * --wh hundredths of its height. A document is about 0.9 as tall as it is
+     * wide, so the second cap fixes the sheet's vertical reach whatever the
+     * viewport's proportions are.
+     *
+     * That is the whole reason the clearing stays clear — "does this sheet
+     * touch the headline" becomes arithmetic instead of something you discover
+     * at 1100px — and it is what lets one set of numbers survive a 390×844
+     * phone and an 860×844 tablet: on both the sheet is the same fraction of
+     * the frame's HEIGHT, which is the axis this scene fights over.
+     *
+     * The default ties them at 1.72 — the ratio at which a 16:9 frame makes both
+     * caps agree — so a scene that does not care only sets --w.
+     */
+    --wh: calc(var(--w) * 1.72);
+    --sw: min(var(--w) * 1cqw, var(--wh) * 1cqh);
+    --ms: 1;
+    --ts: var(--ms);
+    --wx: var(--ptr-x2);
+    --wy: var(--ptr-y2);
+
+    /*
+     * Two knobs for short viewports, so a 700-tall laptop or an older phone is
+     * corrected in one place rather than by editing nine sets of coordinates.
+     */
+    --msk: 1;
+    --cyk: 0;
+    --cyr: calc(var(--cy) + var(--cyk));
+    --msf: calc(var(--ms) * var(--msk));
+    --tsf: calc(var(--ts) * var(--msk));
+
+    /*
+     * Segment 3, the hand-off: once the month is sorted, two of the five are
+     * picked up to be checked against each other and the other three are set
+     * aside. It rides on .drift rather than on the main expression because by
+     * then the wind is dead and that wrapper is free — and because a third term
+     * inside the main translate would make it unreadable.
+     */
+    --hx: 0;
+    --hy: 0;
+    --hf: clamp(0, calc((var(--p) - 0.84) / 0.13), 1);
+    --he: calc(var(--hf) * var(--hf) * (3 - 2 * var(--hf)));
+
+    /* Segment 1: in from the edges into a heap. Segment 2: sorted and laid out. */
+    --f1: clamp(0, calc((var(--p) - var(--d1)) / var(--dur1)), 1);
+    --f2: clamp(0, calc((var(--p) - var(--d2)) / var(--dur2)), 1);
+    /* Smoothstep: leaves rest gently, arrives gently. Paper does not bounce. */
+    --e1: calc(var(--f1) * var(--f1) * (3 - 2 * var(--f1)));
+    --e2: calc(var(--f2) * var(--f2) * (3 - 2 * var(--f2)));
+    /* Off the desk during either move, flat before and after. */
+    --air: max(sin(calc(var(--f1) * 180deg)), sin(calc(var(--f2) * 180deg)));
+    /* Loose until it joins the heap — after that the wind stops reaching it. */
+    --loose: calc(1 - var(--e1));
+
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: var(--sw);
+
+    translate:
+      calc(
+        -50% +
+          (
+            var(--cx) + (var(--mx) - var(--cx)) * var(--e1) + (var(--tx) - var(--mx)) *
+              var(--e2)
+          ) * 1cqw
+      )
+      calc(
+        -50% +
+          (
+            var(--cyr) + (var(--my) - var(--cyr)) * var(--e1) + (var(--ty) - var(--my)) *
+              var(--e2)
+          ) * 1cqh
+      );
+
+    rotate: calc(
+      (
+          var(--crot) + (var(--mrot) - var(--crot)) * var(--e1) + (var(--trot) - var(--mrot)) *
+            var(--e2) + sin(var(--f1) * 360deg) * var(--wob) + sin(var(--f2) * 180deg) *
+            var(--wob)
+        ) * 1deg
+    );
+
+    /* Higher above the desk reads as slightly nearer the camera. Together with
+       the shadow below, this is what makes it a flight rather than a slide. */
+    scale: calc(
+      (1 + (var(--msf) - 1) * var(--e1) + (var(--tsf) - var(--msf)) * var(--e2)) *
+        (1 + var(--air) * 0.075)
+    );
+
+    filter: drop-shadow(
+      0 calc((3 + var(--air) * 30) * 1px) calc((7 + var(--air) * 30) * 1px)
+        rgb(0 0 0 / calc(var(--shade-a) * (0.6 + var(--air) * 0.4)))
+    );
+  }
+
+  /*
+   * The totals are not printed yet.
+   *
+   * A document in the heap is raw paper. The figure at its foot is the
+   * bookkeeper's output, so it is inked in as the sheet is separated out and
+   * named — the sorting beat literally puts the numbers on the page. It also
+   * keeps the answer off the first screen, which matters most on a narrow one,
+   * where a small sheet prints its name and total at the top.
+   */
+  .slot :global(.doc__total-amount) {
+    opacity: var(--e2);
+  }
+
+  /*
+   * The wind. Each sheet subscribes to one of the three pointer channels the
+   * engine publishes; the slow ones are physically further away, so they answer
+   * late and by less. --ptr-v is how hard the air is moving, and it tips the
+   * sheet as well as sliding it — a gust catches a corner, it does not push a
+   * page sideways.
+   */
+  .drift {
+    translate: calc(
+        var(--wx) * var(--depth) * var(--loose) * -1px + var(--hx) * var(--he) * 1cqw
+      )
+      calc(var(--wy) * var(--depth) * var(--loose) * -0.5px + var(--hy) * var(--he) * 1cqh);
+    rotate: calc(
+      var(--loose) * (var(--wx) * var(--tilt) * -1 + var(--ptr-v) * var(--gustr)) * 1deg
+    );
+  }
+
+  /*
+   * The two that are going on to be checked settle a little further down the
+   * desk, towards the marks that lead off the bottom of the frame.
+   *
+   * They used to slide APART as well, and that had to go: the mark now leaves
+   * each sheet's centre and runs dead straight to the frame edge, where the
+   * next scene picks it up at the same x. A sheet drifting sideways after its
+   * mark is drawn pulls the sheet off the top of its own line — the one thing
+   * this routing exists to prevent. They already take the sides they will have
+   * next screen, invoiced left and banked right, without moving another inch.
+   */
+  .slot--invoices,
+  .slot--bank {
+    --hx: 0;
+    --hy: 3;
+  }
+
+  /*
+   * The sheet's one size. Every dimension inside a document is em of this, so a
+   * sheet scales as a single object and no label can ever leave its paper.
+   *
+   * It is set HERE and not on .slot as a custom property, and that is not a
+   * style preference. An unregistered custom property is substituted where it is
+   * USED — inside `.doc` — and `.doc` is itself a container query container, so
+   * `1cqw` there would mean one percent of the sheet's own width. A font size
+   * that depends on the width it is helping to compute is a cycle, the browser
+   * drops the declaration at computed-value time, and every document silently
+   * renders at the inherited body size. Declared on this wrapper, which is not
+   * a container, the units resolve against the desk, as intended.
+   */
+  .float {
+    position: relative;
+    font-size: max(8.5px, calc(var(--sw) * 0.05));
+    animation: breathe var(--bd) var(--ease-seek) var(--bdelay) infinite alternate;
+  }
+
+  @keyframes breathe {
+    from {
+      translate: calc(var(--loose) * -2.5px) calc(var(--loose) * 1.8px);
+      rotate: calc(var(--loose) * -0.5deg);
+    }
+    to {
+      translate: calc(var(--loose) * 3px) calc(var(--loose) * -2.4px);
+      rotate: calc(var(--loose) * 0.55deg);
+    }
+  }
+
+  /*
+   * The clutter. Never readable, never counted — it is the volume the five real
+   * documents get pulled out of, and five sheets spaced around a 1600px frame
+   * are not a volume. It slides off the desk before the real paper heaps up.
+   */
+  .slot--noise {
+    --d1: 0.015;
+    --dur1: 0.13;
+    --d2: 9;
+    --dur2: 1;
+    --wob: 0;
+    opacity: calc(1 - var(--e1));
+  }
+
+  /* ── the pencil ───────────────────────────────────────────────────── */
+
+  .trace {
+    position: absolute;
+    /*
+     * `inset: 0` resolves against the pin's PADDING box, so this canvas is the
+     * whole 100svh frame — not the area below the letterhead. The next scene's
+     * canvas is set up the same way and its top edge is this one's bottom edge,
+     * which is what lets a vertical at 37.5% run through the join without a
+     * kink. Stroke width, colour and opacity are matched to it exactly for the
+     * same reason: a 15% step in either reads as two different lines.
+     */
+    inset: 0;
+    /* Under the paper. Both ends of every mark are under a sheet, so nothing
+       can be seen to stop short of the thing it points at. */
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: var(--desk-ink-quiet);
+    /* User units, not pixels: the viewBox is stretched, so this is multiplied
+       by the horizontal scale. Across the widths that show these lines at all
+       (901px and up) it lands between 1.4 and 2.9 device pixels. */
+    stroke-width: 0.15;
+    stroke-linecap: round;
+    /* Out before the scene lets go. Nothing pencilled here may still be on
+       screen when the next one arrives. */
+    opacity: calc(0.5 * clamp(0, calc((0.97 - var(--p)) / 0.07), 1));
+    pointer-events: none;
+  }
+
+  /*
+   * Drawn as the sheet it LEAVES lands — which is why the two records are
+   * sorted before the three cost documents below. A mark drawn towards a sheet
+   * that has not arrived yet ends on bare desk, and that is the whole fault
+   * this routing exists to remove.
+   */
+  .trace path {
+    --f: clamp(0, calc((var(--p) - var(--d)) / var(--dur, 0.17)), 1);
+    stroke-dasharray: 1;
+    stroke-dashoffset: calc(1 - var(--f) * var(--f) * (3 - 2 * var(--f)));
+  }
+
+  @media (max-width: 900px) {
+    /* The narrow layout sorts into a column that already runs downwards; five
+       more lines saying so would be noise. */
+    .trace {
+      display: none;
+    }
+  }
+
+  /* ── the ring, the heap, the sorted grid ──────────────────────────── */
+
+  /*
+   * Rest (--cx,--cy) is a point in hundredths of the frame from its centre, so
+   * ±50 is the edge. A sheet is cropped when its own half width or half height
+   * carries it past ±50, and it clears the clearing when one of its two axes
+   * stays outside it.
+   *
+   * A sheet cropped by the LEFT edge shows its right-hand side, which is the
+   * column the amounts are set in — so the left edge belongs to paper with no
+   * amounts on it, and any real document over there is cropped by the bottom as
+   * well, so its foot goes off-frame.
+   */
+
+  /*
+   * THE TWO SIZES THE FIVE REAL DOCUMENTS SHARE.
+   *
+   * They were repeated inside each of the five, which made "make the paper
+   * smaller" a five-place edit and guaranteed that one of them would eventually
+   * be missed. They are one number each now, and they are the number that
+   * changed most in this pass.
+   *
+   * The laid-out size went from 0.78 to 0.62 — a fifth off each edge, a third
+   * off the area. The scene was reading as an animation with a caption: five
+   * documents filling two thirds of the screen under a heading barely larger
+   * than body copy. The sentence is the argument and the paper illustrates it,
+   * so the type went up 40% and the paper came down to pay for it.
+   *
+   * The heap is cut by less. It is the one moment in the scene where volume IS
+   * the point — a month arriving as too much paper — and shrinking it as far as
+   * the sorted grid would have argued the opposite of what it is there to say.
+   */
+  .slot--operating,
+  .slot--tax,
+  .slot--payroll,
+  .slot--bank,
+  .slot--invoices {
+    --ms: 0.94;
+    --ts: 0.62;
+  }
+
+  .slot--operating {
+    --w: 19;
+    --cx: -48;
+    --cy: 42;
+    --crot: 7;
+    --mx: -11;
+    --my: 12;
+    --mrot: -13;
+    --tx: -19;
+    --ty: -3;
+    --trot: -2.5;
+    --d1: 0.06;
+    --dur1: 0.15;
+    --d2: 0.56;
+    --dur2: 0.16;
+    --wob: -1.8;
+    --depth: 15;
+    --tilt: 1.5;
+    --gustr: -1.9;
+    --wx: var(--ptr-x);
+    --wy: var(--ptr-y);
+    --bd: 7.5s;
+    --bdelay: -2.5s;
+  }
+
+  .slot--tax {
+    --w: 24;
+    --cx: 46;
+    --cy: -46;
+    --crot: -6;
+    --mx: 12;
+    --my: 4;
+    --mrot: 9;
+    --tx: -3.2;
+    --ty: -3;
+    --trot: 1.5;
+    --d1: 0.085;
+    --dur1: 0.15;
+    --d2: 0.62;
+    --dur2: 0.16;
+    --wob: 1.6;
+    --depth: 11;
+    --tilt: 0.9;
+    --gustr: 1.3;
+    --wx: var(--ptr-x3);
+    --wy: var(--ptr-y3);
+    --bd: 10.5s;
+    --bdelay: -8s;
+  }
+
+  .slot--payroll {
+    --w: 27;
+    --cx: 8;
+    --cy: 56;
+    --crot: -4;
+    --mx: -5;
+    --my: -1;
+    --mrot: -6;
+    --tx: 16;
+    --ty: -3;
+    --trot: -1.5;
+    --d1: 0.11;
+    --dur1: 0.15;
+    --d2: 0.68;
+    --dur2: 0.16;
+    --wob: 1.1;
+    --depth: 19;
+    --tilt: 1.1;
+    --gustr: -1.4;
+    --wx: var(--ptr-x);
+    --wy: var(--ptr-y);
+    --bd: 8.5s;
+    --bdelay: -6s;
+  }
+
+  .slot--bank {
+    --w: 25;
+    --cx: 51;
+    --cy: -18;
+    --crot: 5;
+    --mx: 9;
+    --my: 6;
+    --mrot: 7;
+    --tx: 10;
+    --ty: 22;
+    --trot: 2;
+    /* The two records are laid out FIRST — see the note on .trace path. Three
+       marks point into them, and a mark cannot be drawn at a sheet that is not
+       there yet without ending on bare desk. */
+    --d1: 0.135;
+    --dur1: 0.15;
+    --d2: 0.44;
+    --dur2: 0.16;
+    --wob: -1.2;
+    --depth: 22;
+    --tilt: 1.3;
+    --gustr: 1.7;
+    --wx: var(--ptr-x2);
+    --wy: var(--ptr-y2);
+    --bd: 11s;
+    --bdelay: -4s;
+  }
+
+  .slot--invoices {
+    --w: 26;
+    --cx: 50;
+    --cy: 24;
+    --crot: -7;
+    --mx: -3;
+    --my: 6;
+    --mrot: -4;
+    --tx: -10;
+    --ty: 22;
+    --trot: -1.5;
+    --d1: 0.16;
+    --dur1: 0.15;
+    --d2: 0.5;
+    --dur2: 0.16;
+    --wob: 1.4;
+    --depth: 27;
+    --tilt: 1.6;
+    --gustr: -2.1;
+    --wx: var(--ptr-x);
+    --wy: var(--ptr-y);
+    --bd: 9.5s;
+    --bdelay: -1.2s;
+  }
+
+  /*
+   * Clutter placement obeys two rules beyond the clearing: the top-left corner
+   * stays empty, because an evenly loaded frame is a certificate border and the
+   * eye needs one quiet corner to read the busy ones as deliberate; and no two
+   * sheets of the same stock touch, because two krafts side by side stop being
+   * two documents and become one brown shape.
+   */
+  .slot--bills {
+    --w: 25;
+    --cx: 43;
+    --cy: -55;
+    --crot: 9;
+    --mx: 62;
+    --my: -84;
+    --mrot: 17;
+    --tx: 62;
+    --ty: -84;
+    --trot: 17;
+    --depth: 9;
+    --tilt: 0.8;
+    --gustr: -1;
+    --wx: var(--ptr-x3);
+    --wy: var(--ptr-y3);
+    --bd: 13s;
+    --bdelay: -9s;
+  }
+
+  .slot--card {
+    --w: 24;
+    --cx: -50;
+    --cy: 8;
+    --crot: 4;
+    --mx: -80;
+    --my: 12;
+    --mrot: 10;
+    --tx: -80;
+    --ty: 12;
+    --trot: 10;
+    --depth: 13;
+    --tilt: 1;
+    --gustr: 1.1;
+    --wx: var(--ptr-x3);
+    --wy: var(--ptr-y3);
+    --bd: 12s;
+    --bdelay: -7s;
+  }
+
+  .slot--jobcost {
+    --w: 24;
+    --cx: 55;
+    --cy: 4;
+    --crot: 10;
+    --mx: 84;
+    --my: 7;
+    --mrot: 17;
+    --tx: 84;
+    --ty: 7;
+    --trot: 17;
+    --depth: 24;
+    --tilt: 1.4;
+    --gustr: 1.8;
+    --wx: var(--ptr-x);
+    --wy: var(--ptr-y);
+    --bd: 8s;
+    --bdelay: -5.5s;
+  }
+
+  .slot--receipts {
+    --w: 22;
+    --cx: -22;
+    --cy: 55;
+    --crot: -6;
+    --mx: -38;
+    --my: 86;
+    --mrot: -14;
+    --tx: -38;
+    --ty: 86;
+    --trot: -14;
+    --depth: 17;
+    --tilt: 1.2;
+    --gustr: -1.5;
+    --wx: var(--ptr-x2);
+    --wy: var(--ptr-y2);
+    --bd: 9s;
+    --bdelay: -3.4s;
+  }
+
+  /* ── narrow ───────────────────────────────────────────────────────── */
+
+  /*
+   * Phone and small tablet. The ring rotates through ninety degrees.
+   *
+   * On a portrait screen the edges that have room are the top and the bottom,
+   * so that is where the paper goes: a band of it cropped under the letterhead,
+   * and a bank of it below the copy. Paper down the SIDES was tried and
+   * measured, and it does not survive contact with a 390px screen — a headline
+   * that leaves 40px of margin either side is a headline nobody reads, and
+   * 40px of paper reads as a rendering bug rather than a desk. Better an honest
+   * two-sided crop than a four-sided one that ruins the sentence it frames.
+   *
+   * The copy is pushed down to make the top band, which is also why the whole
+   * arrangement collapses back to bottom-only on a short phone: there, the
+   * inches genuinely are not there.
+   */
+  @media (max-width: 900px) {
+    .opening {
+      --run: 132;
+    }
+
+    /* Top-aligned, so the padding is a real offset that opens the top band
+       rather than half an offset shared with the bottom. */
+    .opening__copy {
+      place-items: start center;
+      padding-top: clamp(4.5rem, 13vh, 7.5rem);
+      padding-bottom: 0;
+    }
+
+    .say--hero {
+      max-width: min(32rem, 92vw);
+    }
+
+    .say__promise {
+      max-width: 30ch;
+    }
+
+    .say__cue {
+      display: none;
+    }
+
+    /* The top band: paper under the letterhead, cropped on two edges. */
+    .slot--card {
+      --w: 46;
+      --wh: 23;
+      --cx: -42;
+      --cy: -45;
+      --crot: 4;
+      --mx: -60;
+      --my: -74;
+      --mrot: 12;
+      --tx: -60;
+      --ty: -74;
+    }
+
+    .slot--jobcost {
+      --w: 48;
+      --wh: 24;
+      --cx: 40;
+      --cy: -47;
+      --crot: 10;
+      --mx: 56;
+      --my: -78;
+      --mrot: 18;
+      --tx: 56;
+      --ty: -78;
+    }
+
+    /* The bank along the bottom. */
+    .slot--receipts {
+      --w: 44;
+      --wh: 22;
+      --cx: -48;
+      --cy: 30;
+      --crot: -6;
+      --mx: -84;
+      --my: 62;
+      --mrot: -14;
+      --tx: -84;
+      --ty: 62;
+    }
+
+    .slot--operating {
+      --w: 46;
+      --wh: 24;
+      --cx: -40;
+      --cy: 34;
+      --crot: 7;
+      --ms: 1;
+      --mx: -5;
+      --my: 6;
+      --mrot: -11;
+      --ts: 0.85;
+      --tx: -3;
+      --ty: -6;
+      --trot: -2;
+    }
+
+    .slot--tax {
+      --w: 50;
+      --wh: 25;
+      --cx: 40;
+      --cy: 32;
+      --crot: -6;
+      --ms: 1;
+      --mx: 5;
+      --my: 2;
+      --mrot: 8;
+      --ts: 0.85;
+      --tx: 3;
+      --ty: 5.5;
+      --trot: 1.5;
+    }
+
+    .slot--invoices {
+      --w: 56;
+      --wh: 27;
+      --cx: 4;
+      --cy: 46;
+      --crot: -7;
+      --ms: 1;
+      --mx: -2;
+      --my: 5;
+      --mrot: -4;
+      --ts: 0.85;
+      --tx: -3;
+      --ty: 37;
+      --trot: -1.5;
+    }
+
+    .slot--bank {
+      --w: 54;
+      --wh: 26.5;
+      --cx: -28;
+      --cy: 52;
+      --crot: 5;
+      --ms: 1;
+      --mx: 4;
+      --my: 9;
+      --mrot: 6;
+      --ts: 0.85;
+      --tx: 3;
+      --ty: 28.5;
+      --trot: 2;
+    }
+
+    .slot--payroll {
+      --w: 52;
+      --wh: 26;
+      --cx: 34;
+      --cy: 54;
+      --crot: -4;
+      --ms: 1;
+      --mx: -4;
+      --my: -3;
+      --mrot: -7;
+      --ts: 0.85;
+      --tx: -3;
+      --ty: 17;
+      --trot: -1.5;
+    }
+
+    .slot--bills {
+      display: none;
+    }
+
+    /* No empty corner on a portrait screen — the paper band runs the full
+       width of the foot. The slug goes back under the tally, and the tally
+       lifts by exactly one line of it so the two cannot meet. */
+    .opening__pin {
+      --foot: clamp(0.75rem, 3vh, 1.75rem);
+      --tally-lift: 1.25rem;
+    }
+
+    .slug {
+      right: auto;
+      left: 50%;
+      translate: -50% 0;
+    }
+
+    .tally__line {
+      font-size: var(--fs-sm);
+    }
+  }
+
+  @media (max-width: 620px) {
+    .say__arrow {
+      display: none;
+    }
+
+    .say__proof {
+      gap: 0.3rem 1rem;
+    }
+
+    .stamp {
+      padding: 0.95rem 1.6rem;
+    }
+
+    /* The value strip becomes a bar across the foot of the screen here. */
+    .opening__pin {
+      --foot: clamp(2.75rem, 7vh, 3.5rem);
+    }
+  }
+
+  /* ── short viewports ──────────────────────────────────────────────── */
+
+  /*
+   * Height, not width, is what this scene runs out of first: the clearing, the
+   * heading band and the paper are competing for the same vertical inches, and
+   * a 700-tall laptop has 200 fewer of them than the 900 everything is drawn
+   * for. Corrected with the two knobs rather than by moving sheets.
+   */
+  @media (min-width: 901px) and (max-height: 810px) {
+    .slot {
+      --msk: 0.84;
+    }
+
+    .say__cue {
+      display: none;
+    }
+
+    .say__promise {
+      margin-top: 0.75rem;
+    }
+
+  }
+
+  @media (max-width: 900px) and (max-height: 790px) {
+    .slot {
+      --msk: 0.88;
+    }
+
+    /* No room for a top band and a headline both. The bottom keeps the ring. */
+    .opening__copy {
+      padding-top: clamp(0.5rem, 2.5vh, 1.5rem);
+    }
+
+    .slot--card,
+    .slot--jobcost {
+      display: none;
+    }
+
+    .say__line-a {
+      font-size: clamp(1.6875rem, 1.1rem + 2.9vw, 2.375rem);
+    }
+
+    .say__line-b {
+      font-size: var(--fs-base);
+      margin-top: 0.35rem;
+    }
+
+    .say__promise {
+      font-size: var(--fs-base);
+      margin-top: 0.6rem;
+    }
+
+    .say__act {
+      margin-top: 0.9rem;
+    }
+
+    .say__proof {
+      margin-top: 0.75rem;
+    }
+
+    .stamp {
+      padding: 0.8rem 1.5rem;
+    }
+
+  }
+
+  /*
+   * Landscape phone. There is not enough height for a hero and a desk at all,
+   * so the clutter goes — better a smaller true composition than a correct one
+   * that overflows.
+   */
+  @media (max-height: 620px) and (orientation: landscape) {
+    .slot--noise {
+      display: none;
+    }
+
+    .say__proof {
+      margin-top: 0.5rem;
+    }
+
+  }
+
+  /*
+   * Without motion the scene still has to say the same thing, so it presents its
+   * resolved state rather than an unexplained pile.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .float,
+    .say__cue-rule {
+      animation: none;
+    }
+
+    .say__arrow path {
+      stroke-dashoffset: 0;
+      animation: none;
+    }
+  }
+</style>

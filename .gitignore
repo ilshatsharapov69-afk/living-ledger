@@ -1,0 +1,30 @@
+node_modules/
+dist/
+.astro/
+.playwright-mcp/
+
+# Agent config for this machine. `*.local` below does NOT match
+# `settings.local.json`, and that file has held paths into other projects.
+.claude/
+
+# Working screenshots.
+shots/
+*.png
+!public/**/*.png
+
+# Internal working documents. These are the sales playbook, the prospecting
+# recipe, the plan and the running state — they are for the person selling this,
+# not for the public repo the demo is served from.
+SELLING.md
+TODO.md
+PLAN.md
+STATE.md
+HANDOFF.md
+BRIEF-CORRECTION.md
+CONTENT.md
+RESKIN.md
+
+*.local
+.env
+.env.*
+!.env.example

@@ -1,0 +1,380 @@
+---
+/**
+ * One document. The atom the whole story is built from: the same five elements
+ * are scattered on the first screen, fall into a stack, get matched in
+ * Reconcile and drop into the folder in Close.
+ *
+ * SIZING — the important part.
+ *
+ * Every dimension inside this component is in `em`, driven by one variable the
+ * parent sets: `--doc-fs`. The sheet therefore scales as a single object, the
+ * way a real piece of paper does when you hold it further away. Nothing ever
+ * re-wraps, so there is no width at which a label overflows its sheet or a
+ * total lands outside the paper — the bug you get the moment a document is
+ * allowed to reflow inside a box that is changing size.
+ *
+ * There are exactly two layouts, and the switch between them is a deliberate
+ * design decision rather than a reflow: below roughly 250px of sheet the rows
+ * are texture rather than text, so the sheet prints only what stays legible —
+ * its name and its total. Both layouts are fully proportional, so the crossover
+ * is a clean swap and not a broken zone.
+ *
+ * Drawn in HTML rather than SVG on purpose: these are tables of text, and in
+ * Reconcile individual rows have to highlight and numbers have to run. A raster
+ * or a flattened SVG has nothing to animate — that is what killed v1.
+ */
+import type { Doc } from '../../config/story';
+import { money, moneyShort } from '../../lib/format';
+
+interface Props {
+  doc: Doc;
+  variant?: 'display' | 'list';
+  hideTotal?: boolean;
+  /** Masthead and ruling only, for a sheet lying under another one. */
+  preview?: boolean;
+  class?: string;
+}
+
+const {
+  doc,
+  variant = 'list',
+  hideTotal = false,
+  preview = false,
+  class: className = '',
+} = Astro.props;
+
+const display = variant === 'display';
+const amount = display ? moneyShort : money;
+---
+
+<article
+  class:list={['doc', `doc--${variant}`, 'sheet', 'sheet--fibre', className]}
+  data-doc={doc.id}
+  data-stock={doc.stock}
+  data-preview={preview}
+>
+  {doc.stock === 'tractor' && <span class="doc__feed doc__feed--left" aria-hidden="true" />}
+  {doc.stock === 'tractor' && <span class="doc__feed doc__feed--right" aria-hidden="true" />}
+
+  <header class="doc__head">
+    <h3 class="doc__title">{display ? doc.short : doc.title}</h3>
+    {!display && <p class="doc__meta">{doc.meta}</p>}
+  </header>
+
+  {
+    preview ? (
+      <div class="doc__ruling" aria-hidden="true">
+        {doc.rows.map(() => (
+          <span class="doc__rule" />
+        ))}
+      </div>
+    ) : (
+      <ol class="doc__rows">
+        {doc.rows.map((row, i) => (
+          <li class="doc__row" data-row={i} data-bucket={row.bucket} data-excluded={row.excluded}>
+            <span class="doc__label">{row.label}</span>
+            <span class="doc__amount u-num">{amount(row.amount)}</span>
+            {!display && row.meta && <span class="doc__sub">{row.meta}</span>}
+          </li>
+        ))}
+      </ol>
+    )
+  }
+
+  {
+    !hideTotal && !preview && (
+      <footer class="doc__total">
+        <span class="doc__total-label">{doc.totalLabel}</span>
+        <span class="doc__total-amount u-num">{amount(doc.total)}</span>
+      </footer>
+    )
+  }
+</article>
+
+<style>
+  .doc {
+    /* The one number the whole sheet is built from. Either the parent sets
+       --doc-fs, or it sets a font-size on the wrapper and this inherits it —
+       the second route is the one the opening scene uses, because a container
+       query container cannot size itself from its own container units. */
+    font-size: var(--doc-fs, 1em);
+    display: flex;
+    flex-direction: column;
+    padding: 1.45em;
+    container-type: inline-size;
+  }
+
+  /* ── masthead ─────────────────────────────────────────────────────── */
+
+  .doc__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1em;
+    padding-bottom: 0.64em;
+    border-bottom: max(1px, 0.1em) solid var(--paper-rule-strong);
+  }
+
+  .doc__title {
+    font-family: var(--font-mono);
+    font-size: 0.86em;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    color: var(--paper-ink);
+  }
+
+  /* Big enough to name the document from across the desk. */
+  .doc--display .doc__title {
+    font-family: var(--font-sans);
+    font-size: 1.42em;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    line-height: 1.04;
+    text-transform: uppercase;
+  }
+
+  .doc--display .doc__head {
+    padding-bottom: 0.4em;
+    border-bottom-color: var(--paper-ink);
+  }
+
+  .doc__meta {
+    font-size: 0.84em;
+    line-height: 1.3;
+    color: var(--paper-ink-quiet);
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── rows ─────────────────────────────────────────────────────────── */
+
+  .doc__rows {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .doc__row {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: 0.9em;
+    padding-block: 0.5em;
+    border-bottom: max(1px, 0.055em) solid var(--paper-rule);
+  }
+
+  .doc--display .doc__row {
+    padding-block: 0.42em;
+    column-gap: 0.7em;
+  }
+
+  .doc__label,
+  .doc__amount {
+    font-size: 1em;
+    line-height: 1.28;
+    color: var(--paper-ink);
+    white-space: nowrap;
+  }
+
+  .doc__label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .doc--display .doc__label {
+    color: var(--paper-ink-quiet);
+  }
+
+  .doc__sub {
+    grid-column: 1 / -1;
+    font-size: 0.84em;
+    line-height: 1.32;
+    color: var(--paper-ink-quiet);
+    margin-top: 0.1em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .doc__ruling {
+    display: grid;
+  }
+
+  .doc__rule {
+    height: 2.1em;
+    border-bottom: max(1px, 0.055em) solid var(--paper-rule);
+  }
+
+  /* ── total ────────────────────────────────────────────────────────── */
+
+  .doc__total {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1em;
+    margin-top: auto;
+    padding-top: 0.6em;
+  }
+
+  .doc__total-label {
+    font-family: var(--font-mono);
+    font-size: 0.8em;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--paper-ink-quiet);
+  }
+
+  /* The double rule under a total is the one piece of accounting grammar every
+     visitor recognises without being told. */
+  .doc__total-amount {
+    font-size: 1.2em;
+    font-weight: 500;
+    line-height: 1.15;
+    color: var(--paper-ink);
+    padding-bottom: 0.16em;
+    border-bottom: max(2px, 0.16em) double var(--paper-ink);
+  }
+
+  .doc--display .doc__total-amount {
+    font-size: 1.95em;
+    font-weight: 550;
+    letter-spacing: -0.03em;
+  }
+
+  /* ── stock detail ─────────────────────────────────────────────────── */
+
+  /* Continuous-feed payroll paper: sprocket holes down both edges, and the
+     faint green bar every other line that anyone who has seen a payroll run
+     recognises instantly. */
+  .doc[data-stock='tractor'] {
+    padding-inline: 2.5em;
+  }
+
+  .doc__feed {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0.95em;
+    background-image: radial-gradient(
+      circle at center,
+      color-mix(in oklab, var(--paper-ink) 26%, transparent) 0 0.14em,
+      transparent 0.17em
+    );
+    background-size: 100% 0.72em;
+    background-position: center 0.36em;
+    opacity: 0.75;
+  }
+
+  .doc__feed--left {
+    left: 0;
+    border-right: 1px dashed var(--paper-rule);
+  }
+
+  .doc__feed--right {
+    right: 0;
+    border-left: 1px dashed var(--paper-rule);
+  }
+
+  .doc[data-stock='tractor'] .doc__row:nth-child(odd) {
+    background: color-mix(in oklab, var(--paper-ink) 5%, transparent);
+    box-shadow:
+      -0.5em 0 0 color-mix(in oklab, var(--paper-ink) 5%, transparent),
+      0.5em 0 0 color-mix(in oklab, var(--paper-ink) 5%, transparent);
+  }
+
+  /* A till slip is torn off, not cut. */
+  .doc[data-stock='slip'] {
+    border-radius: 2px 2px 0 0;
+    padding-bottom: 2em;
+    clip-path: var(--slip-tear);
+  }
+
+  .doc[data-stock='kraft'] {
+    border-radius: 3px;
+  }
+
+  /* ── compact layout ───────────────────────────────────────────────── */
+
+  /*
+   * Below roughly 250px of sheet, rows stop being text and become texture. So
+   * the sheet prints the two things that still have to survive at that size:
+   * what it is, and what it came to. Both move to the top, where nothing lying
+   * on top of the sheet can cover them.
+   */
+  @container (max-width: 214px) {
+    /* A sheet this small has fewer things to print, so it prints them larger:
+       the name and the total have to stay legible at thumbnail size. */
+    .doc--display {
+      font-size: var(--doc-fs-chip, 1.24em);
+    }
+
+    .doc--display .doc__label,
+    .doc--display .doc__amount {
+      display: none;
+    }
+
+    .doc--display .doc__row {
+      padding-block: 0;
+      height: 1.35em;
+    }
+
+    .doc--display .doc__head {
+      order: -2;
+      padding-bottom: 0.34em;
+      border-bottom-width: max(1px, 0.075em);
+    }
+
+    .doc--display .doc__total {
+      order: -1;
+      margin-top: 0;
+      padding-top: 0.42em;
+      justify-content: flex-end;
+    }
+
+    .doc--display .doc__rows {
+      order: 0;
+      margin-top: 0.7em;
+      opacity: 0.8;
+    }
+
+    /* The masthead already says which document this is. */
+    .doc--display .doc__total-label {
+      display: none;
+    }
+
+    .doc--display .doc__title {
+      font-size: 1.3em;
+    }
+
+    .doc--display .doc__total-amount {
+      font-size: 1.85em;
+    }
+
+    /* Green bars behind rows with no text read as a loading skeleton. */
+    .doc--display[data-stock='tractor'] .doc__row:nth-child(odd) {
+      background: none;
+      box-shadow: none;
+    }
+  }
+
+  /* Full-detail sheets in the list variant still need a narrow fallback for a
+     390px screen, where the masthead stacks rather than truncating. */
+  @container (max-width: 340px) {
+    .doc--list .doc__head {
+      display: grid;
+      justify-items: start;
+      gap: 0.12em;
+    }
+
+    .doc--list .doc__meta {
+      text-align: left;
+    }
+  }
+</style>

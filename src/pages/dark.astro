@@ -1,0 +1,42 @@
+---
+/**
+ * The same page, after hours. Identical markup and identical components — the
+ * only difference is which theme the palette resolves to, which is the point:
+ * if a theme needed its own layout, the token system would be broken.
+ */
+import Base from '../layouts/Base.astro';
+import Masthead from '../components/Masthead.astro';
+import Opening from '../components/Opening.astro';
+import Reconcile from '../components/Reconcile.astro';
+import Allocate from '../components/Allocate.astro';
+import Close from '../components/Close.astro';
+import Services from '../components/Services.astro';
+import Pricing from '../components/Pricing.astro';
+import Trust from '../components/Trust.astro';
+import Faq from '../components/Faq.astro';
+import Book from '../components/Book.astro';
+import Foot from '../components/Foot.astro';
+import LedgerStrip from '../components/LedgerStrip.astro';
+import StickyAsk from '../components/StickyAsk.astro';
+import { firm } from '../config/firm';
+import { hero } from '../config/content';
+---
+
+<Base title={`${firm.name} — ${firm.discipline}`} description={hero.headline} theme="dark">
+  <Masthead />
+  <LedgerStrip />
+  <StickyAsk />
+  <div class="story" id="story" data-story>
+    <Opening />
+    <Reconcile />
+    <Allocate />
+    <Close />
+  </div>
+
+  <Services />
+  <Pricing />
+  <Trust />
+  <Faq />
+  <Book />
+  <Foot />
+</Base>
