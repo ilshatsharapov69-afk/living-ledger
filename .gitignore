@@ -3,6 +3,9 @@ dist/
 .astro/
 .playwright-mcp/
 
+# Throwaway clone of the gh-pages branch, used by `npm run deploy`.
+.deploy/
+
 # Agent config for this machine. `*.local` below does NOT match
 # `settings.local.json`, and that file has held paths into other projects.
 .claude/

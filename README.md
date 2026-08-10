@@ -25,11 +25,24 @@ npm run dev
 | `npm run build` | Static site for a **domain root** |
 | `npm run build:pages` | Static site for the **GitHub Pages project subpath** |
 | `npm run preview` | Serves the last build |
+| `npm run deploy` | Builds for the subpath and publishes to `gh-pages` |
 
 The two build scripts differ only in `base`. `build:pages` prefixes every asset
 and internal link with the repo name; a root deploy must use plain `build`, or
 every link carries a path segment that is not there. The switch is keyed off the
-npm script name in `astro.config.mjs`.
+npm script name in `astro.config.mjs`, or off `PAGES_BUILD=1` for callers that
+are not npm.
+
+## Deploying
+
+```bash
+npm run deploy
+```
+
+Builds, checks that `.nojekyll` survived, then replaces the `gh-pages` branch
+contents with `dist/` and pushes. Pages picks it up in under a minute at
+`https://ilshatsharapov69-afk.github.io/living-ledger/`. If nothing changed
+since the last deploy the script says so and pushes nothing.
 
 ## Stack
 

@@ -11,9 +11,12 @@ import { defineConfig } from 'astro/config';
  *
  * Keyed off the npm script name rather than a shell variable because this is a
  * Windows machine and `VAR=x npm run build` silently does nothing in cmd.
+ * `PAGES_BUILD=1` is the same switch for callers that are not npm — the deploy
+ * script spawns astro directly, so it has no script name to be keyed off.
  */
 const PAGES_BASE = '/living-ledger';
-const forPages = process.env.npm_lifecycle_event === 'build:pages';
+const forPages =
+  process.env.npm_lifecycle_event === 'build:pages' || process.env.PAGES_BUILD === '1';
 
 export default defineConfig({
   site: 'https://ilshatsharapov69-afk.github.io',
