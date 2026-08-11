@@ -42,7 +42,10 @@ import { href } from '../lib/url';
     </nav>
 
     <div class="masthead__act">
-      <Social size="mark" class="masthead__social" />
+      {/* Wrapped rather than given a class. See the note over `.masthead__social`. */}
+      <div class="masthead__social">
+        <Social size="mark" />
+      </div>
 
       <a class="masthead__phone" href={firm.contact.phoneHref}>
         <svg class="masthead__handset" viewBox="0 0 24 24" aria-hidden="true">
@@ -234,9 +237,29 @@ import { href } from '../lib/url';
     text-decoration-color: currentColor;
   }
 
-  /* Hairline between "look us up" and "call us". Without it the icons read as
-     part of the number. */
+  /*
+   * Hairline between "look us up" and "call us". Without it the icons read as
+   * part of the number.
+   *
+   * The wrapper element exists for a reason worth writing down, because it cost
+   * a live bug. This class used to be handed to the `Social` COMPONENT, and
+   * Astro's scope attribute is stamped on this file's own elements — it does not
+   * travel into a child component's root. So every rule here compiled to
+   * `.masthead__social[data-astro-cid-v3lsk6py]` and matched nothing: the `<ul>`
+   * carries Social's own hash instead. All of it was silently dead, including
+   * the `display: none` below — which is why three icons were still sitting in
+   * the strip at 375px, shoving the one button that matters 63px off the right
+   * edge of the screen.
+   *
+   * `:global()` is NOT the fix. Unscoping drops this to one class of specificity
+   * and Social's own `.social[data-astro-cid-fvhemjle] { display: flex }` — a
+   * class plus an attribute — outranks it. Measured: the icons stayed visible.
+   * A wrapper this file owns carries the hash, so the scoped rules apply and
+   * nothing has to out-shout a child component.
+   */
   .masthead__social {
+    display: flex;
+    align-items: center;
     position: relative;
     padding-right: clamp(0.6rem, 1.1vw, 1rem);
   }
