@@ -37,6 +37,15 @@ const links = [
   { id: 'google', label: 'Google Business Profile', href: firm.social.google },
   { id: 'whatsapp', label: 'WhatsApp', href: firm.social.whatsapp },
 ].filter((l): l is { id: string; label: string; href: string } => Boolean(l.href));
+
+/*
+ * Instagram's ramp is an SVG paint server, and a paint server is addressed by
+ * id. This component renders twice on a page — letterhead and foot — so a fixed
+ * id would leave the second row quietly painting out of the first row's defs.
+ * That works right up until somebody changes one of them, which is the worst
+ * kind of bug. A per-render suffix costs a line and removes the whole class.
+ */
+const ramp = `ig-ramp-${Math.random().toString(36).slice(2, 9)}`;
 ---
 
 {
@@ -46,6 +55,7 @@ const links = [
         <li>
           <a
             class="social__link"
+            data-net={l.id}
             href={l.href}
             title={l.label}
             rel="noopener noreferrer"
@@ -62,13 +72,40 @@ const links = [
 
               {/* The only mark of the five that is drawn as an outline in the
                   wild. Stroke width is tuned by eye against the solid glyphs
-                  beside it — matching the number, not the weight, reads thin. */}
+                  beside it — matching the number, not the weight, reads thin.
+
+                  Its colour is a ramp rather than a flat hex, so it cannot come
+                  from `currentColor`. The units are `userSpaceOnUse` and not the
+                  default bounding box, which is the whole trick: on the default
+                  every shape gets its own copy of the ramp and the 2px shutter
+                  dot would carry the entire rainbow. Anchored to the viewBox,
+                  the three shapes share one diagonal — yellow in the bottom-left
+                  corner, violet at the shutter — which is how the real mark
+                  runs. */}
               {l.id === 'instagram' && (
-                <g fill="none" stroke="currentColor" stroke-width="1.9">
-                  <rect x="3" y="3" width="18" height="18" rx="5.2" />
-                  <circle cx="12" cy="12" r="4.1" />
-                  <circle cx="17.1" cy="6.9" r="1.15" fill="currentColor" stroke="none" />
-                </g>
+                <Fragment>
+                  <defs>
+                    <linearGradient
+                      id={ramp}
+                      gradientUnits="userSpaceOnUse"
+                      x1="4"
+                      y1="20.5"
+                      x2="20"
+                      y2="3.5"
+                    >
+                      <stop offset="0" stop-color="#feda75" />
+                      <stop offset="0.18" stop-color="#fa7e1e" />
+                      <stop offset="0.46" stop-color="#d62976" />
+                      <stop offset="0.74" stop-color="#962fbf" />
+                      <stop offset="1" stop-color="#4f5bd5" />
+                    </linearGradient>
+                  </defs>
+                  <g fill="none" stroke={`url(#${ramp})`} stroke-width="1.9">
+                    <rect x="3" y="3" width="18" height="18" rx="5.2" />
+                    <circle cx="12" cy="12" r="4.1" />
+                    <circle cx="17.1" cy="6.9" r="1.15" fill={`url(#${ramp})`} stroke="none" />
+                  </g>
+                </Fragment>
               )}
 
               {l.id === 'linkedin' && (
@@ -121,7 +158,7 @@ const links = [
     width: 2rem;
     height: 2rem;
     border-radius: 3px;
-    color: var(--paper-ink-quiet);
+    color: var(--net);
     box-shadow: inset 0 0 0 1px transparent;
     transition:
       color var(--t-fast),
@@ -129,10 +166,46 @@ const links = [
       box-shadow var(--t-fast);
   }
 
-  .social__link:hover {
-    color: var(--brand-ink);
-    background: var(--brand-tint);
-    box-shadow: inset 0 0 0 1px var(--brand-halo);
+  /*
+   * THE ONLY BRAND COLOURS ON THIS SITE THAT ARE NOT DERIVED, and they are not
+   * derived because they are not ours to derive. Every other colour on the page
+   * comes out of one hex in firm.ts and is contrast-checked at build time; a
+   * mark belonging to somebody else does not get re-tinted to match
+   * the firm's letterhead, and a monochrome Instagram glyph is a monochrome
+   * Instagram glyph — it is recognised a beat slower than the real one, and a
+   * beat is the entire budget this row has.
+   *
+   * Two variables, because rest and hover are different questions:
+   *   --net     the mark's own ink at rest
+   *   --net-hi  what the plate lights up with — the mark's colour if it has one,
+   *             the firm's brand ink if it does not, so the Google pin keeps the
+   *             hover it has always had.
+   *
+   * The pin is the one mark left in ink on purpose. It is the firm's own listing
+   * drawn as a pin rather than Google's four-colour G — see the note by the path
+   * — so there is no brand colour there to borrow.
+   */
+  .social__link {
+    --net: var(--paper-ink-quiet);
+    --net-hi: var(--brand-ink);
+  }
+
+  .social__link[data-net='facebook'] {
+    --net: #1877f2;
+    --net-hi: #1877f2;
+  }
+
+  .social__link[data-net='linkedin'] {
+    --net: #0a66c2;
+    --net-hi: #0a66c2;
+  }
+
+  /* Instagram paints itself from the gradient in its own <defs>, so --net does
+     nothing here. --net-hi is the ramp's middle stop: one flat colour has to
+     stand in for five on the plate, and the magenta is the one people name when
+     asked what colour Instagram is. */
+  .social__link[data-net='instagram'] {
+    --net-hi: #d62976;
   }
 
   .social__glyph {
@@ -170,5 +243,20 @@ const links = [
   .social--mark .social__glyph {
     width: 1.0625rem;
     height: 1.0625rem;
+  }
+
+  /*
+   * Last on purpose. `.social--plate .social__link` sets a resting surface and
+   * scores exactly the same specificity as `.social__link:hover`, so anywhere
+   * above this point the hover's background and keyline lost to it and only the
+   * glyph colour got through. That was survivable while the colour change WAS
+   * the hover; now that the glyphs already arrive coloured, --net-hi equals
+   * --net for Facebook and LinkedIn and the footer row would have answered the
+   * cursor with nothing at all.
+   */
+  .social__link:hover {
+    color: var(--net-hi);
+    background: color-mix(in oklab, var(--net-hi) 10%, var(--paper));
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--net-hi) 30%, transparent);
   }
 </style>

@@ -158,10 +158,27 @@ import { book as copy } from '../config/content';
 </script>
 
 <style>
+  /*
+   * The top padding also has to clear the letterhead.
+   *
+   * The strip is fixed, so it hangs over the top of whatever the scroll stops
+   * on — and this is the section every CTA on the page jumps to. On the section
+   * rhythm alone, the position an `#book` jump lands on put the eyebrow 6px
+   * behind the strip at 1280x800 and 18px behind at 1600x700, so the closer
+   * opened with its own first line missing.
+   *
+   * Clearance is taken from `--mast-h` rather than a pixel: it is the number
+   * every pinned scene above already pads past, it follows the strip's own
+   * vw-based sizing, and it measures 7-11px taller than the strip actually
+   * renders, so the slack is in it. `max()` because this is a floor under the
+   * section's rhythm, not a new gap — wherever the rhythm is already the larger
+   * of the two, nothing moves.
+   */
   .bk {
     position: relative;
     z-index: 1;
-    padding-block: clamp(3rem, 8vh, 6rem) clamp(4.5rem, 12vh, 8rem);
+    padding-block: max(clamp(3rem, 8vh, 6rem), calc(var(--mast-h) + clamp(1rem, 2.5vh, 2rem)))
+      clamp(4.5rem, 12vh, 8rem);
   }
 
   .bk__frame {

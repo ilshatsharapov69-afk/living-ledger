@@ -72,6 +72,10 @@ import { href } from '../lib/url';
     }
 
     .ask__cta {
+      /* Containing block for the attention ring below, which must not become a
+         grid item — an `::after` in a grid is a cell, and it would push the two
+         lines of the label apart. */
+      position: relative;
       display: grid;
       flex: 1;
       place-content: center;
@@ -84,6 +88,81 @@ import { href } from '../lib/url';
       background: var(--brand-solid);
       border-radius: 3px;
       box-shadow: var(--shadow-flat);
+      /* Only ever used on the way out of the cue below: pulling an animation
+         reverts the property in one frame, and a 3% snap under a thumb that has
+         just landed on the button reads as a glitch. */
+      transition: scale var(--t-fast) var(--ease-snap);
+      animation: ask-cue-lift 4s var(--ease-paper) 1.4s infinite;
+    }
+
+    /*
+     * The same cue the masthead tab and the hero stamp carry: one soft ring out
+     * of the edge every four seconds with a three per cent swell under it, and
+     * nothing else — no hue change, no travel, no rotation, which are the three
+     * moves that turn a button into a discount banner.
+     *
+     * It is written out again rather than shared because there is nowhere to
+     * share it from: every one of these style blocks is scoped to its own
+     * component. So the rule is that the period, the delay, the easing and the
+     * swell curve are copied verbatim between them and stay copied — a cue that
+     * fires at a different moment on each button is three buttons twitching,
+     * not one page with a pulse. The keyframes are named per component so the
+     * three cannot silently merge the day any of these blocks stops being
+     * scoped.
+     *
+     * The ring's two scale figures ARE local, because they are geometry rather
+     * than cue: this button is nearly 300px wide with 0.5rem to the call button
+     * beside it, and the fraction that puts a ten-pixel ring off a 192px stamp
+     * would throw this one clean across that gap. It is fully faded before it
+     * reaches full spread in any case, so what anybody sees stays on the
+     * button.
+     */
+    .ask__cta::after {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border: 2px solid color-mix(in oklab, var(--brand-solid) 75%, transparent);
+      border-radius: 5px;
+      box-shadow: 0 0 9px 1px var(--brand-halo);
+      opacity: 0;
+      pointer-events: none;
+      animation: ask-cue-ring 4s var(--ease-paper) 1.4s infinite;
+    }
+
+    @keyframes ask-cue-ring {
+      0% {
+        scale: 1 1;
+        opacity: 0;
+      }
+      14% {
+        opacity: 0.6;
+      }
+      60%,
+      100% {
+        scale: 1.04 1.23;
+        opacity: 0;
+      }
+    }
+
+    @keyframes ask-cue-lift {
+      0%,
+      38%,
+      100% {
+        scale: 1;
+      }
+      9% {
+        scale: 1.03;
+      }
+    }
+
+    /* Already engaged, so the cue is now just noise. `:focus-visible` and not
+       `:focus`: a tap leaves focus on the anchor, and that would kill the cue
+       for the rest of the visit. */
+    .ask__cta:hover,
+    .ask__cta:focus-visible,
+    .ask__cta:hover::after,
+    .ask__cta:focus-visible::after {
+      animation: none;
     }
 
     .ask__label {
@@ -114,9 +193,17 @@ import { href } from '../lib/url';
     }
   }
 
+  /* The global killswitch in base.css runs every animation once at 0.01ms
+     rather than dropping it, so the ring would still blink once on load. Named
+     off, the way the hero's is. */
   @media (prefers-reduced-motion: reduce) {
     .ask {
       translate: none;
+    }
+
+    .ask__cta,
+    .ask__cta::after {
+      animation: none;
     }
   }
 </style>

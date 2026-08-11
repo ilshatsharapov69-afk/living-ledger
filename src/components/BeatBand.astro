@@ -8,9 +8,12 @@
  * sentence above, and a visitor who looks away and back can still tell what he
  * is being shown.
  *
- * All beats share one grid cell and cross-fade, so the band reserves the height
- * of the tallest of them and the paper underneath never has to guess where the
- * words stop. Each beat also gets a `data-vis` range so the engine can take it
+ * It is two stacks, not one. The headings share a grid cell and cross-fade, so
+ * the band reserves the height of the tallest of them and the paper underneath
+ * never has to guess where the words stop. Above them the chapter marker sits
+ * in a cell of its own and outlives them — see `Chapter` for why that matters.
+ *
+ * Everything in both stacks gets a `data-vis` range so the engine can take it
  * out of the accessibility tree when its moment has passed — opacity alone
  * leaves an invisible heading in the middle of the desk for a screen reader to
  * read out.
@@ -43,7 +46,33 @@ import { em } from '../lib/format';
 
 const { beats, fade = 0.06 } = Astro.props;
 
-const resolve = (b: Beat) => {
+/**
+ * A CHAPTER: consecutive beats that carry the same eyebrow, merged into one.
+ *
+ * The eyebrow used to live inside each beat, which meant "Step three · Allocate"
+ * was printed four separate times in the allocate scene and cross-faded between
+ * every one of them — the same four words fading out and back in three times
+ * while the visitor read them. That flicker is the whole reason the marks
+ * around the eyebrow read as broken: they were not a chapter marker at all,
+ * they were four of them stacked on top of each other.
+ *
+ * Merged, the marker is one object for as long as the step lasts. Only the
+ * headings underneath cross-fade, which is what was ever supposed to move.
+ */
+interface Chapter {
+  eyebrow: string;
+  from: number;
+  to?: number;
+}
+
+const chapters: Chapter[] = [];
+for (const b of beats) {
+  const open = chapters[chapters.length - 1];
+  if (open && open.eyebrow === b.eyebrow) open.to = b.to;
+  else chapters.push({ eyebrow: b.eyebrow, from: b.from, to: b.to });
+}
+
+const resolve = (b: { from: number; to?: number }) => {
   const arrive = b.from <= 0 ? '1' : `clamp(0, calc((var(--p) - ${b.from}) / ${fade}), 1)`;
   const leave = b.to === undefined ? null : `clamp(0, calc((${b.to} - var(--p)) / ${fade}), 1)`;
   return {
@@ -51,23 +80,100 @@ const resolve = (b: Beat) => {
     vis: `${Math.max(0, b.from - fade / 2)} ${b.to === undefined ? 1 : b.to + fade / 2}`,
   };
 };
+
+/**
+ * How far through its own chapter the scene has got, 0..1.
+ *
+ * The onward arrow is drawn against this rather than against `--p`, so a scene
+ * carrying two chapters hands over twice instead of once. It is published as a
+ * custom property on the eyebrow and read by the stroke below — the engine
+ * stays the only thing that writes scroll state.
+ *
+ * The run ends where the marker starts leaving, not where it has gone: an arrow
+ * that completes during the cross-fade completes somewhere nobody can see it,
+ * which is the same as not completing at all.
+ */
+const advance = (c: Chapter) => {
+  const end = c.to === undefined ? 1 : c.to - fade;
+  return `clamp(0, calc((var(--p) - ${c.from}) / ${Math.max(0.02, end - c.from).toFixed(3)}), 1)`;
+};
+
+/*
+ * The mark, in one 46×12 box so both sides of the eyebrow are the same width
+ * and the words stay optically centred whichever glyph is showing.
+ *
+ *   stem  the rule. Drawn from the words outwards as the step runs.
+ *   head  where it is going. Always there, so there is never a moment with no
+ *         arrow on the desk — the old hairlines were faded in and out, and that
+ *         is precisely what made them read as an unfinished effect.
+ *   cap   a start bar, for the one chapter with nothing behind it.
+ *   stop  the heavy rule under a closed total, for the one with nothing ahead.
+ */
+const STEM = 'M1.2 6H43.4';
+const HEAD = 'M37.6 2 44 6 37.6 10';
+const CAP = 'M1.4 2.4V9.6';
+const STOP = 'M43.6 1.7V10.3';
 ---
 
 <div class="band">
-  {
-    beats.map((b) => {
-      const { opacity, vis } = resolve(b);
-      return (
-        <div class="band__beat" data-vis={vis} style={`opacity:${opacity}`}>
-          <p class="band__eyebrow u-caps">
-            <span class="band__eyebrow-text">{b.eyebrow}</span>
-          </p>
-          <h2 class="band__heading">{b.heading}</h2>
-          {b.line && <p class="band__line" set:html={em(b.line)} />}
-        </div>
-      );
-    })
-  }
+  <div class="band__chapters">
+    {
+      chapters.map((c) => {
+        const { opacity, vis } = resolve(c);
+        /*
+         * The marks are inline, each joined to the word beside it by a
+         * non-breaking space.
+         *
+         * Inline, because as flex items they were pinned to the band's outer
+         * edges: a long eyebrow wrapping on a phone left two centred lines of
+         * type floating between two rules that had nothing to do with them —
+         * furniture, not punctuation. Inline they travel with the first and
+         * last word, and a wrapped eyebrow still reads as one marked phrase.
+         *
+         * The space IS the gap, in the eyebrow's own type, which is the right
+         * distance at every size without a second clamp to keep in step. What
+         * it does NOT do is hold the mark on the line: an inline-block is a
+         * break opportunity in its own right and Chrome will break there
+         * whether the space is breaking or not. See the narrow-screen rule.
+         */
+        return (
+          <p
+            class="band__eyebrow u-caps"
+            data-vis={vis}
+            style={`opacity:${opacity};--adv:${advance(c)}`}
+          ><svg class="band__mark band__mark--in" viewBox="0 0 46 12" aria-hidden="true">
+              <path class="band__mark-ghost" d={STEM} />
+              <path class="band__mark-stem" d={STEM} pathLength="1" />
+              <path class="band__mark-head" d={HEAD} />
+              <path class="band__mark-cap" d={CAP} />
+            </svg>&nbsp;<span class="band__eyebrow-text">{c.eyebrow}</span>&nbsp;<svg
+              class="band__mark band__mark--out"
+              viewBox="0 0 46 12"
+              aria-hidden="true"
+            >
+              <path class="band__mark-ghost" d={STEM} />
+              <path class="band__mark-stem" d={STEM} pathLength="1" />
+              <path class="band__mark-head" d={HEAD} />
+              <path class="band__mark-stop" d={STOP} />
+            </svg></p>
+        );
+      })
+    }
+  </div>
+
+  <div class="band__beats">
+    {
+      beats.map((b) => {
+        const { opacity, vis } = resolve(b);
+        return (
+          <div class="band__beat" data-vis={vis} style={`opacity:${opacity}`}>
+            <h2 class="band__heading">{b.heading}</h2>
+            {b.line && <p class="band__line" set:html={em(b.line)} />}
+          </div>
+        );
+      })
+    }
+  </div>
 </div>
 
 <style>
@@ -83,35 +189,142 @@ const resolve = (b: Beat) => {
     pointer-events: none;
   }
 
+  /* Two stacks, not one. The chapter marker outlives the headings under it. */
+  .band__chapters,
+  .band__beats {
+    display: grid;
+  }
+
+  .band__eyebrow,
   .band__beat {
     grid-area: 1 / 1;
   }
 
-  /* A chapter marker, not a label: the step is ruled off from the desk on both
-     sides the way a divider is ruled in a bound report. The rules are what make
-     it read as structure — the same words without them read as a caption that
-     came loose. */
+  /*
+   * A chapter marker, not a label: the step arrives on one arrow and leaves on
+   * another, and the second one draws itself as the step runs out. That is the
+   * dependency the band has to show — sort feeds reconcile, reconcile feeds
+   * allocate — and a pair of hairlines at a third of the brand's strength was
+   * never going to carry it on a lit desk.
+   */
   .band__eyebrow {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: clamp(0.5rem, 1.2vw, 0.9rem);
     font-size: var(--fs-xs);
     font-weight: 600;
     letter-spacing: 0.17em;
     color: var(--brand-lit);
   }
 
-  .band__eyebrow::before,
-  .band__eyebrow::after {
-    content: '';
-    width: clamp(1.25rem, 4vw, 3.25rem);
-    height: 1px;
-    background: linear-gradient(to right, transparent, var(--brand-halo));
+  .band__mark {
+    /* Sized off the type rather than the viewport: the mark belongs to the
+       words, and it has to stay in proportion to them at every width. */
+    --mark-h: clamp(0.62em, 0.14rem + 0.6vw, 0.9em);
+    --head: inline;
+    --cap: none;
+    --stop: none;
+    display: inline-block;
+    vertical-align: middle;
+    width: calc(var(--mark-h) * 46 / 12);
+    height: var(--mark-h);
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
-  .band__eyebrow::after {
-    background: linear-gradient(to left, transparent, var(--brand-halo));
+  /* Where the step came from: complete, and quieter than the live one. Past
+     work is not the thing the visitor is being asked to follow. */
+  .band__mark--in {
+    --q: 1;
+    --ink: color-mix(in oklab, var(--brand-lit) 68%, transparent);
+    --ink-ghost: color-mix(in oklab, var(--brand-lit) 16%, transparent);
+  }
+
+  /* Where it is going. Full strength — this is the mark that has to be read at
+     a glance across a warm desk. */
+  .band__mark--out {
+    --q: var(--adv, 1);
+    --ink: var(--brand-lit);
+    --ink-ghost: color-mix(in oklab, var(--brand-lit) 24%, transparent);
+  }
+
+  /* The track the stem is drawn along. Present the whole time so the arrow's
+     geometry never appears from nothing; only the ink advances. */
+  .band__mark-ghost {
+    stroke: var(--ink-ghost);
+  }
+
+  /* px rather than a bare number: 1px is one user unit in SVG, and a unitless
+     calc() is a <number>, which is not what a length property will take. */
+  .band__mark-stem {
+    stroke-dasharray: 1;
+    stroke-dashoffset: calc((1 - var(--q)) * 1px);
+  }
+
+  .band__mark-head {
+    display: var(--head);
+  }
+
+  .band__mark-cap {
+    display: var(--cap);
+    stroke-width: 2.4;
+  }
+
+  .band__mark-stop {
+    display: var(--stop);
+    stroke-width: 2.8;
+  }
+
+  /*
+   * The two ends of the story, addressed by scene rather than by prop: the four
+   * scenes own their own files and cannot be edited from here, and `data-scene`
+   * is already the contract the engine reads them by. Reorder the story and
+   * these two rules are what has to move with it.
+   */
+
+  /* Nothing was carried into the first chapter, so the rule starts at a bar
+     instead of arriving on an arrowhead that points at empty desk. */
+  :global([data-scene='opening']) .band__eyebrow:first-child .band__mark--in {
+    --head: none;
+    --cap: inline;
+  }
+
+  /* And nothing is handed on from the last: the onward arrow becomes the heavy
+     rule an accountant draws under a total that is not going to be reopened. It
+     is drawn once and does not advance — there is no next step to advance to. */
+  :global([data-scene='close']) .band__eyebrow:last-child .band__mark--out {
+    --q: 1;
+    --head: none;
+    --stop: inline;
+  }
+
+  /*
+   * The stem is the one thing here that moves on its own account rather than
+   * revealing a sentence, so under reduced motion it is simply finished. The
+   * marker still says the same thing; it just stops drawing itself. `--adv` is
+   * inline on the eyebrow, hence the indirection through `--q` — an inline
+   * custom property cannot be overridden from a stylesheet.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .band__mark--out {
+      --q: 1;
+    }
+  }
+
+  /*
+   * A phone gets one mark, not two.
+   *
+   * "Step three · Allocate" is the longest of the four steps, and with a mark
+   * either side it fills a 390px phone's band wall to wall. Measured at 360px
+   * it stops fitting altogether and the closing arrow drops onto a line of its
+   * own — the band grows a whole line taller, and every object on the desk
+   * below is scaled off that height. The onward arrow is the one carrying the
+   * argument, so the one behind us is what goes.
+   */
+  @media (max-width: 480px) {
+    .band__mark--in {
+      display: none;
+    }
   }
 
   .band__eyebrow-text {

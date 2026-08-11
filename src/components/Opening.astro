@@ -156,9 +156,20 @@ const noise = clutter.map((doc, i) => ({ doc, z: 11 + i * 2 }));
 
         <div class="say__act">
           <span class="say__cta">
-            <svg class="say__arrow" viewBox="0 0 88 66" aria-hidden="true">
-              <path pathLength="1" d="M5 5c1.5 20 8.5 35.5 22.5 44.5C37 55.5 50 58.5 66 59"></path>
-              <path pathLength="1" d="M53 51c5 2.5 9.5 5 13 8-4.5 1.5-8.5 3.5-12 6.5"></path>
+            <!--
+              Two strokes, drawn in the order a hand draws them: the sweep in,
+              then the head laid over its end. Both finish at exactly (82.5,
+              62.5) so the head sits ON the tip rather than near it — the same
+              rule the pencil marks under the paper obey, and the reason this
+              does not need tuning per width.
+
+              The head is a single stroke that runs into the tip and back out,
+              which is what a barbed arrowhead actually is when you draw one.
+              Two separate barbs meeting at a point look printed.
+            -->
+            <svg class="say__arrow" viewBox="0 0 104 74" aria-hidden="true">
+              <path pathLength="1" d="M6 6c1.6 20.5 8.8 36 23.5 45.5C42 58.5 60 62 82.5 62.5"></path>
+              <path pathLength="1" d="M64 45c8 4.4 14.5 10 18.5 17.5-9 1-16.5 3.4-22.5 6.6"></path>
             </svg>
             <a class="stamp" href={href(firm.contact.calendarUrl)}>
               <span class="stamp__label">{hero.cta}</span>
@@ -349,9 +360,13 @@ const noise = clutter.map((doc, i) => ({ doc, z: 11 + i * 2 }));
     border-radius: 3px;
     rotate: -1.1deg;
     box-shadow: var(--shadow-rest);
+    /* `scale` is here only for the way OUT of the attention cue below. Pulling
+       an animation reverts the property in one frame, and a 3% snap on a button
+       the cursor has just landed on reads as a glitch. */
     transition:
       rotate var(--t-base) var(--ease-paper),
       translate var(--t-fast) var(--ease-snap),
+      scale var(--t-fast) var(--ease-snap),
       box-shadow var(--t-fast) var(--ease-snap);
   }
 
@@ -375,38 +390,105 @@ const noise = clutter.map((doc, i) => ({ doc, z: 11 + i * 2 }));
    *
    * A rubber stamp does not glow and it does not bounce. What it does is press
    * — and the mark of a press is the ring of ink that spreads out from under it
-   * and dies. So the button gives off one ring every four and a half seconds,
-   * from its own edge, in its own colour, and nothing else moves.
+   * and dies. So every four seconds the button swells by three per cent and
+   * lets one soft ring go from its own edge, in its own colour, and nothing
+   * else moves. No hue change, no travel, no rotation: those are the three
+   * moves that turn a stamp into a discount banner.
    *
-   * It is a pseudo-element and not the button, which matters: an `animation` on
-   * `translate` would outrank the `:hover` translate in the cascade and the
-   * button would refuse to lift under the cursor. And it stops the moment
-   * somebody hovers or tabs to it — a control that keeps waving after you have
-   * found it is a control that does not know you are there.
+   * WHAT CHANGED AND WHY. It used to be a bare 2px outline on a four-and-a-half
+   * second loop and the owner reported never catching it. Two faults, both of
+   * them about peripheral vision rather than about the loop being wrong: a
+   * hairline with a hard edge only exists once you are already looking straight
+   * at it, and the eye that never looks straight at it needs the cue to come
+   * round often enough to be caught by accident. Hence the halo, which gives
+   * the ring an edge that survives being out of focus, the swell, which is
+   * motion on the thing itself rather than beside it, and four seconds flat.
+   *
+   * THE RING IS A PSEUDO-ELEMENT AND THE SWELL IS `scale`, and both of those
+   * are cascade decisions, not style ones. An animation outranks a normal
+   * declaration, so a keyframe touching `translate` would beat the `:hover`
+   * lift and the button would refuse to move under the cursor. `scale` is the
+   * one transform property neither `:hover` nor `:active` claims, so the cue
+   * and the pointer never argue. Both are compositor-only properties, which
+   * matters on a page already doing per-frame calc() on forty sheets of paper.
+   *
+   * It stops the moment somebody hovers or tabs to it — a control that keeps
+   * waving after you have found it is a control that does not know you are
+   * there. `:focus-visible` rather than `:focus`, because a mouse click leaves
+   * focus on the anchor and that would silence the cue for good.
+   *
+   * PERIOD, DELAY, EASING AND THE SWELL CURVE ARE COPIED FROM `.masthead__cta`
+   * AND MUST STAY COPIED. Both buttons are on screen together on the first
+   * frame, and two identical green buttons breathing out of step read as two
+   * unrelated things blinking rather than as one page with a pulse. Only the
+   * ring's two scale figures are local, because they are geometry: the amount
+   * of scale it takes to push a ring a fixed number of pixels off an edge
+   * depends on how long that edge is.
    */
+  .stamp {
+    animation: hero-cue-lift 4s var(--ease-paper) 1.4s infinite;
+  }
+
   .stamp::after {
     content: '';
     position: absolute;
-    inset: -2px;
-    border: 2px solid var(--brand-solid);
+    inset: -3px;
+    /* Ring colour, halo and fade envelope are COPIED from `.masthead__cta::after`
+       and must stay copied — the tab and this stamp are both on screen from the
+       first frame and pulse in phase, so any drift between them reads as two
+       different effects rather than one. Only the two scale figures below are
+       local, because they are geometry. */
+    border: 2px solid color-mix(in oklab, var(--brand-solid) 75%, transparent);
     border-radius: 5px;
+    box-shadow: 0 0 9px 1px var(--brand-halo);
     opacity: 0;
     pointer-events: none;
-    animation: stamp-halo 4.4s var(--ease-paper) 2.2s infinite;
+    animation: hero-cue-ring 4s var(--ease-paper) 1.4s infinite;
   }
 
-  @keyframes stamp-halo {
+  /*
+   * Uneven on purpose. The stamp is three times as wide as it is tall, so one
+   * figure for both axes throws the ring three times further sideways than it
+   * does up — a lozenge, not a ring. These two put about ten pixels of clear
+   * air on every side of a 192×65 button.
+   *
+   * It is fully faded before it reaches full spread, which is also what keeps
+   * it off its neighbours: the part anybody sees never leaves the button.
+   *
+   * The opacity envelope starts at zero rather than half for the reason given
+   * on the masthead tab: a ring in the button's own ink, three pixels outside
+   * the button, is invisible until it has separated, and fading in over the
+   * first half-second is what makes it read as something LEAVING the edge
+   * rather than the button briefly growing a border.
+   */
+  @keyframes hero-cue-ring {
     0% {
       scale: 1 1;
-      opacity: 0.5;
+      opacity: 0;
     }
-    58%,
+    14% {
+      opacity: 0.6;
+    }
+    60%,
     100% {
-      scale: 1.11 1.34;
+      scale: 1.1 1.28;
       opacity: 0;
     }
   }
 
+  @keyframes hero-cue-lift {
+    0%,
+    38%,
+    100% {
+      scale: 1;
+    }
+    9% {
+      scale: 1.03;
+    }
+  }
+
+  .stamp:hover,
+  .stamp:focus-visible,
   .stamp:hover::after,
   .stamp:focus-visible::after {
     animation: none;
@@ -423,23 +505,53 @@ const noise = clutter.map((doc, i) => ({ doc, z: 11 + i * 2 }));
     box-shadow: var(--shadow-flat);
   }
 
-  /* Somebody drew this in on the printout. It arrives a beat after the page has
-     settled, so it reads as a mark made rather than an element that loaded. */
+  /*
+   * Somebody drew this in on the printout — and it has to look like somebody
+   * MEANT to. It was a 2px grey hairline at 85% opacity, which on a linen desk
+   * is the same weight and very nearly the same colour as the pencil routing
+   * under the paper, so the eye filed it as texture and moved on. Three things
+   * fix that and none of them is "make it bigger": pen weight instead of
+   * propelling-pencil weight, the brand accent instead of desk grey, and a head
+   * that is a third of the mark's length, which is the proportion a hand
+   * actually draws when it wants you to look at something.
+   *
+   * THE COLOUR IS --brand-lit, NOT --brand-ink, which is the obvious guess and
+   * the wrong one. --brand-ink is solved for 4.5:1 on PAPER; this mark lies on
+   * the desk, where for the demo hex it manages 2.6:1 in the light theme and
+   * 2.0:1 in the dark one — dimmer than the grey it replaces. --brand-lit is
+   * the token the palette solves against the worst desk pixel there is, so it
+   * clears 4.5:1 in both themes and goes on doing so whatever hex the next
+   * prospect hands over. Full opacity, no fudge factor: the token is the
+   * contrast guarantee, and dimming it throws the guarantee away.
+   *
+   * The box overlaps the stamp's left edge; the ink does not. The tip stops
+   * about a dozen pixels short, which is where a hand stops — running a pen
+   * into the thing you are pointing at is how you get a correction, not an
+   * arrow.
+   */
   .say__arrow {
     position: absolute;
-    right: calc(100% + 0.35rem);
+    right: calc(100% - 0.5rem);
     bottom: 0.55rem;
-    width: 5.5rem;
+    width: 6.5rem;
     height: auto;
     fill: none;
-    stroke: var(--desk-mark);
-    stroke-width: 2.1;
+    stroke: var(--brand-lit);
+    stroke-width: 3.6;
     stroke-linecap: round;
     stroke-linejoin: round;
-    opacity: 0.85;
     pointer-events: none;
   }
 
+  /*
+   * The draw-on is a flourish and nothing rests on it: `forwards` holds the
+   * finished mark, the finished mark is the readable state, and reduced motion
+   * simply starts there. A mark you can only see while it is being drawn is a
+   * mark that is invisible to everyone who scrolled past the first second.
+   *
+   * It arrives a beat after the page has settled, so it reads as a mark made
+   * rather than an element that loaded.
+   */
   .say__arrow path {
     stroke-dasharray: 1;
     stroke-dashoffset: 1;
@@ -1369,6 +1481,17 @@ const noise = clutter.map((doc, i) => ({ doc, z: 11 + i * 2 }));
       margin-top: 0.75rem;
     }
 
+    /*
+     * The heavier mark is 74px tall and reaches roughly 23px above the top of
+     * the stamp. Here `.say__act` only clears the promise by 3.2vh, which on an
+     * 800-tall screen is 26px and on a 700-tall one is 22px — so the mark comes
+     * down a size rather than parking its shoulder in the paragraph's leading.
+     * Shrinking it is honest: everything that makes it visible is weight and
+     * colour, and both of those survive the resize.
+     */
+    .say__arrow {
+      width: 5.4rem;
+    }
   }
 
   @media (max-width: 900px) and (max-height: 790px) {
@@ -1412,6 +1535,14 @@ const noise = clutter.map((doc, i) => ({ doc, z: 11 + i * 2 }));
       padding: 0.8rem 1.5rem;
     }
 
+    /* The tightest band the mark survives in at all: a shorter button under a
+       0.9rem gap. Dropped low enough that its shoulder stays below the top of
+       the stamp, and the couple of pixels it now dips past the stamp's foot go
+       into the gap above the trust chips, which is empty desk. */
+    .say__arrow {
+      width: 4.6rem;
+      bottom: 0.15rem;
+    }
   }
 
   /*
@@ -1435,8 +1566,17 @@ const noise = clutter.map((doc, i) => ({ doc, z: 11 + i * 2 }));
    * resolved state rather than an unexplained pile.
    */
   @media (prefers-reduced-motion: reduce) {
+    /*
+     * base.css already clamps every animation to 0.01ms and one iteration,
+     * which is the right blanket rule and the wrong one here: an animation that
+     * runs once, instantly, still fires — the ring would blink on and off in
+     * the first frame after load, which is precisely the twitch the setting
+     * exists to prevent. Named off explicitly instead.
+     */
     .float,
-    .say__cue-rule {
+    .say__cue-rule,
+    .stamp,
+    .stamp::after {
       animation: none;
     }
 

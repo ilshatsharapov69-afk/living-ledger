@@ -18,9 +18,10 @@
  * proportional subdivision of ONE SHARED RECTANGLE. No amount of paper stock,
  * ragged edges or hand-drawn rules touches that.
  *
- * So the month is not a rectangle here. It is forty-two discrete strapped
- * bundles poured out across the desk, and the structural move that makes the
- * chart reading impossible rather than merely unlikely:
+ * So the month is not a rectangle here. It is twenty-odd discrete strapped
+ * bundles poured out across the desk — the exact count is derived below and a
+ * rescin changes it — and the structural move that makes the chart reading
+ * impossible rather than merely unlikely:
  *
  *   BUCKET MEMBERSHIP IS SCATTERED THROUGH THE SPREAD, NEVER CONTIGUOUS.
  *
@@ -29,11 +30,15 @@
  * develops HOLES, not a missing block — and the holes never close, because a
  * spread full of holes is exactly what "already spent" looks like.
  *
- * NO DENOMINATION IS PRINTED ON A BUNDLE, and no caption claims one. 42 × 2,000
- * is 84,000, not 84,200, and this is a project whose build asserts exist to stop
- * it shipping a month that lies. The strap carries a teller's band legend, which
- * is a real artefact and cannot be wrong. Quantity is carried by count; every
- * figure the visitor actually READS is exact and comes from story.ts.
+ * NO BUNDLE IS EVER GIVEN A VALUE, and no caption claims one. The count times
+ * any round denomination misses the month by a couple of hundred dollars — 21 ×
+ * 4,000 is 84,000, not 84,200 — and this is a project whose build asserts exist
+ * to stop it shipping a month that lies. So the notes carry a denomination in
+ * their corners, the way notes do, and the strap carries no figure at all: a
+ * hundred-dollar bill is a hundred-dollar bill however many of them are in the
+ * stack, but a band saying $4,000 would be an amount nobody could check.
+ * Quantity is carried by count; every figure the visitor actually READS is exact
+ * and comes from story.ts.
  *
  * THREE CLAIMS, THREE DIFFERENT VERBS — this is what stops it being the same
  * slide three times:
@@ -411,14 +416,25 @@ const U_W = +(100 / FOOT_W).toFixed(4);
           -->
           <span class="foot"><span class="foot__hatch"></span></span>
 
-          <!-- Nothing collects the tax. It squares up inside a pencil fence,
-               INSIDE the footprint, because this money never left the account. -->
+          <!--
+            Nothing collects the tax. It squares up inside a pencil fence,
+            INSIDE the footprint, because this money never left the account.
+
+            Three elements, not one, because they belong on three different
+            layers: the rule is drawn on the desk UNDER the money, the stamp is
+            struck ON it, and the tag is written on bare desk beside it. The
+            wrapper carries the geometry and deliberately has no z-index and no
+            transform of its own — either would make it a stacking context and
+            trap all three on the same layer, which is how the tag ended up
+            being sliced in half by a bundle and reading as "ATE".
+          -->
           <span
-            class="fence"
+            class="held"
             style={`--x:${FENCE_X};--y:${FENCE_Y};--w:${FENCE_W};--h:${FENCE_H}`}
           >
-            <span class="fence__tag">{s.heldTag}</span>
+            <span class="fence"></span>
             <span class="stamp stamp--held">{s.stamps[taxId]}</span>
+            <span class="fence__tag">{s.heldTag}</span>
           </span>
 
           {
@@ -433,17 +449,25 @@ const U_W = +(100 / FOOT_W).toFixed(4);
 
         <!--
           The three claims. Each one enters by a different verb and then PARKS
-          cropped at a frame edge for the rest of the scene, stamped — so the
+          along the left margin for the rest of the scene, stamped — so the
           closing image carries the whole argument without a word: two claims
           that left, one that did not, and what nobody has a claim on.
+
+          Each is split in two because the ticket and its stamp belong on
+          opposite sides of the money: the paper is background and the money
+          runs over it, but a PAID that the money buried would be a stamp on
+          nothing. `.claim` itself therefore holds no z-index, no filter and no
+          transform — see the note on the rule.
         -->
         <div class="claim claim--payroll">
-          <DocFace doc={docById[claims[0]!.id]!} variant="list" />
+          <div class="claim__sheet">
+            <DocFace doc={docById[claims[0]!.id]!} variant="list" />
+          </div>
           <span class="stamp">{s.stamps[claims[0]!.id]}</span>
         </div>
 
         <div class="claim claim--operating">
-          <div class="claim__roll">
+          <div class="claim__sheet claim__roll">
             <DocFace doc={docById[claims[1]!.id]!} variant="list" />
           </div>
           <span class="stamp">{s.stamps[claims[1]!.id]}</span>
@@ -529,7 +553,14 @@ const U_W = +(100 / FOOT_W).toFixed(4);
     --f2: clamp(0, calc((var(--p) - 0.32) / 0.1), 1);
     --f3: clamp(0, calc((var(--p) - 0.54) / 0.08), 1);
     --f4: clamp(0, calc((var(--p) - 0.88) / 0.08), 1);
-    --f5: clamp(0, calc((var(--p) - 0.56) / 0.08), 1);
+    /*
+     * The fence is ruled at 0.645, not at 0.56, and that is a bug fix rather
+     * than a taste change: the tax bundles do not finish arriving until 0.675,
+     * so the old timing left an empty dashed rectangle sitting on the desk for
+     * a tenth of the scene. An empty dashed box is a drop zone, not a pencil
+     * mark, and it was the first thing anybody noticed here.
+     */
+    --f5: clamp(0, calc((var(--p) - 0.645) / 0.055), 1);
     --e1: calc(var(--f1) * var(--f1) * (3 - 2 * var(--f1)));
     --e2: calc(var(--f2) * var(--f2) * (3 - 2 * var(--f2)));
     --e3: calc(var(--f3) * var(--f3) * (3 - 2 * var(--f3)));
@@ -588,6 +619,35 @@ const U_W = +(100 / FOOT_W).toFixed(4);
        laid over the rest, so this is the one number that keeps the two apart. */
     --span: 0.62;
     --fx: 33%;
+
+    /*
+     * ── MONEY, AND WHY IT IS THE ONE FIXED COLOUR ON THIS PAGE ──────────
+     *
+     * Everything else here is derived from one brand hex and contrast-checked.
+     * Currency is not, and must not be. The file already carries the argument
+     * for it — a banknote that changed colour with the logo would be the one
+     * object on this desk that could not exist — but the previous pass drew
+     * that conclusion and then mixed the note out of the pale payroll stock
+     * anyway, which is not the same thing. It came out at ΔL* 3.6 against the
+     * desk, and 9.5 of that desk is brighter still where the lamp lands: the
+     * notes were literally darker than the surface they were lying on. The
+     * house threshold for "reads as a distinct surface" is 7.
+     *
+     * So these three are stated, in oklch, and they do not move: a currency
+     * paper that clears the desk by ΔL* 9.8 at its worst, an intaglio green at
+     * 6.2:1 on it, and the near-black green of a cut edge at 9.0:1. Paper is
+     * paper — palette.ts says so about the five stocks, and money is the sixth.
+     *
+     * They live here rather than on `.wad` because the HELD stamp is struck on
+     * the notes and has to be inked out of the same tin.
+     */
+    --money-face: oklch(0.888 0.072 149);
+    --money-ink: oklch(0.415 0.125 155);
+    --money-deep: oklch(0.305 0.085 158);
+
+    --note-face: var(--money-face);
+    --note-ink: var(--money-ink);
+    --note-deep: var(--money-deep);
 
     /*
      * The three bands of the desk, top to bottom: the heading's overhang plus a
@@ -662,16 +722,44 @@ const U_W = +(100 / FOOT_W).toFixed(4);
 
   /* ── the frozen footprint ─────────────────────────────────────────── */
 
+  /*
+   * RULED, NOT DASHED.
+   *
+   * A dashed rectangle around a group of objects is a drop zone — every piece
+   * of software the visitor has ever used has taught them that — and two of
+   * them on one desk read as an unfinished wireframe rather than as a month.
+   *
+   * A pencil rule is a solid line, and the thing that says a person drew it is
+   * that it OVERSHOOTS at the corners: you cannot stop a pencil exactly on a
+   * corner and nobody tries. Four background layers, each a little longer than
+   * the side it rules, do that for nothing — a border cannot, because a border
+   * is exactly the size of its box.
+   */
   .foot {
+    --rule: color-mix(in oklab, var(--desk-mark) 50%, transparent);
     position: absolute;
     inset: 0;
-    border: 1px dashed var(--desk-mark);
-    border-radius: 2px;
     rotate: -0.5deg;
     /* Drawn left to right in the first tenth, then never touched again. */
     scale: clamp(0, calc((var(--p) - 0.02) / 0.055), 1) 1;
     transform-origin: left;
-    opacity: 0.75;
+    opacity: 0.78;
+    background-image:
+      linear-gradient(var(--rule), var(--rule)), linear-gradient(var(--rule), var(--rule)),
+      linear-gradient(var(--rule), var(--rule)), linear-gradient(var(--rule), var(--rule));
+    background-repeat: no-repeat;
+    background-size:
+      calc(100% + 0.52 * var(--u)) 1px,
+      calc(100% + 0.4 * var(--u)) 1px,
+      1px calc(100% + 0.34 * var(--u)),
+      1px calc(100% + 0.26 * var(--u));
+    /* Each overshoot is a different length. Four equal ones read as a corner
+       radius somebody got wrong. */
+    background-position:
+      calc(-0.33 * var(--u)) 0,
+      calc(-0.15 * var(--u)) 100%,
+      0 calc(-0.21 * var(--u)),
+      100% calc(-0.09 * var(--u));
   }
 
   /*
@@ -693,13 +781,14 @@ const U_W = +(100 / FOOT_W).toFixed(4);
   /* ── the bundles ──────────────────────────────────────────────────── */
 
   /*
-   * One rule, forty-two elements. Two clamps and one sine each, and the two
-   * derived numbers are registered so they compute once per element per frame
-   * rather than re-expanding the clamp everywhere they are read.
+   * One rule, one per bundle. Two clamps and one sine each, and the two derived
+   * numbers are registered so they compute once per element per frame rather
+   * than re-expanding the clamp everywhere they are read.
    *
-   * box-shadow, never filter: drop-shadow — forty-two filtered elements is a
-   * different order of cost. And no .sheet--fibre: a turbulence data-URI tiled
-   * across a 60×24px object is invisible and not free.
+   * box-shadow, never filter: drop-shadow — twenty-one filtered elements is a
+   * different order of cost. The mask on ::before is the one exception, and it
+   * is affordable because the element's SIZE never changes between frames, so
+   * it rasterises once and only the transform moves after that.
    */
   .wad {
     --bf: clamp(0, calc((var(--p) - var(--g0)) / var(--du)), 1);
@@ -708,76 +797,94 @@ const U_W = +(100 / FOOT_W).toFixed(4);
     --air: sin(calc(var(--bf) * 180deg));
 
     /*
-     * ── WHY THIS IS GREEN AND NOT WHITE ─────────────────────────────────
+     * ── THE ENGRAVED PLATE ──────────────────────────────────────────────
      *
-     * The first build drew these on `--stock-bond`: white paper with a kraft
-     * band. Forty-two of them read, correctly, as a scatter of business cards,
-     * because that is what a small white rectangle with a stripe IS. Nothing
-     * about the composition was wrong — the object was.
+     * One SVG, carried as a MASK rather than as a picture, so every line on it
+     * is painted in `--note-ink` and nothing about the drawing is a colour the
+     * palette does not own. That is the whole reason it is a mask: an inline
+     * SVG image cannot read a custom property, and a bundle whose printing was
+     * a hardcoded hex would be the one thing here a rescin could not restyle.
      *
-     * Money is not brand-coloured, any more than the kraft folder is, so this
-     * is mixed from the pale green continuous-feed stock towards its own ink
-     * rather than from the brand. A red-branded firm gets the same notes,
-     * which is right: a banknote that changed colour with the logo would be
-     * the one object on this desk that could not exist.
+     * A mask is also a single alpha channel, which is exactly what intaglio
+     * is: one ink, varying line density. Nothing else on the plate is a
+     * shortcut — a portrait in a ruled oval, four corner denominations, a
+     * seal, and two frames. Those five shapes are what the eye actually uses
+     * to say "banknote" before it has read anything, and the previous pass had
+     * none of them: it had a soft grey ellipse.
+     *
+     * The viewBox is 340×135, which is the element's own 3.4u × 1.35u — so
+     * nothing here distorts, and it is a real note's 2.5:1 to within a hair.
+     *
+     * The numeral is the DENOMINATION OF A NOTE and never the value of a
+     * bundle. That distinction is not pedantry: 21 × anything round is not
+     * 84,200, the caption under this spread prints the exact inflow, and the
+     * build asserts the month adds up. A strap carrying an amount would be the
+     * one figure on this page nobody could check.
      */
-    --note: color-mix(in oklab, var(--stock-tractor) 82%, var(--stock-tractor-ink));
-    --note-line: color-mix(in oklab, var(--stock-tractor) 52%, var(--stock-tractor-ink));
-    --note-edge: color-mix(in oklab, var(--stock-tractor) 34%, var(--stock-tractor-ink));
+    --plate: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 340 135'%3E%3Cdefs%3E%3Cg id='n'%3E%3Cpath d='M3.2 5.6 8 0h2.6v22H7.1V6Z'/%3E%3Cellipse cx='24' cy='11' rx='6.3' ry='9.3' fill='none' stroke='%23fff' stroke-width='3.3'/%3E%3Cellipse cx='40' cy='11' rx='6.3' ry='9.3' fill='none' stroke='%23fff' stroke-width='3.3'/%3E%3C/g%3E%3CclipPath id='m'%3E%3Cellipse cx='106' cy='67' rx='27' ry='38.5'/%3E%3C/clipPath%3E%3C/defs%3E%3Cg fill='%23fff'%3E%3Crect x='10' y='10' width='320' height='115' rx='6' fill='none' stroke='%23fff' stroke-width='2.8'/%3E%3Crect x='17.5' y='17.5' width='305' height='100' rx='4' fill='none' stroke='%23fff' stroke-width='1' opacity='.5'/%3E%3Cg clip-path='url(%23m)'%3E%3Cpath opacity='.46' d='M106 42c9.6 0 16.2 7.2 16.2 16.8 0 6.5-2.3 12.2-6.1 15.6 10.7 3.5 18.2 10.8 20.6 21H75.3c2.4-10.2 9.9-17.5 20.6-21-3.8-3.4-6.1-9.1-6.1-15.6C89.8 49.2 96.4 42 106 42Z'/%3E%3Cpath fill='none' stroke='%23fff' stroke-width='1.1' opacity='.34' d='M79 31h54M79 37h54M79 43h54M79 49h54M79 55h54M79 61h54M79 67h54M79 73h54M79 79h54M79 85h54M79 91h54M79 97h54M79 103h54'/%3E%3C/g%3E%3Cellipse cx='106' cy='67' rx='32' ry='44' fill='none' stroke='%23fff' stroke-width='2.4'/%3E%3Cellipse cx='106' cy='67' rx='27' ry='38.5' fill='none' stroke='%23fff' stroke-width='1' opacity='.55'/%3E%3Cg transform='translate(232 67)'%3E%3Ccircle r='13.5' fill='none' stroke='%23fff' stroke-width='1.9'/%3E%3Ccircle r='8.5' fill='none' stroke='%23fff' stroke-width='1' opacity='.6'/%3E%3Ccircle r='3.2' opacity='.8'/%3E%3C/g%3E%3Cuse href='%23n' x='25' y='23'/%3E%3Cuse href='%23n' x='262' y='23'/%3E%3Cuse href='%23n' x='25' y='89'/%3E%3Cuse href='%23n' x='262' y='89'/%3E%3C/g%3E%3C/svg%3E");
 
     position: absolute;
     left: 0;
     top: 0;
     width: calc(3.4 * var(--u));
     height: calc(1.35 * var(--u));
-    border-radius: calc(0.04 * var(--u));
+    border-radius: calc(0.035 * var(--u));
     /*
-     * Four layers, front to back. Everything a banknote is at two centimetres
-     * across, and nothing it is not — no numerals, no wordmark, no seal. At
-     * this size those would be four grey smudges; the shapes below survive.
+     * Four layers, front to back. The plate above carries the printing; this
+     * carries the paper it is printed on.
      *
-     *   1  the cut edge of the stack, seen end-on along the foot. This is the
-     *      layer that says "a bundle" rather than "a note".
-     *   2  the portrait vignette. One dark oval in the middle is most of what
-     *      the eye uses to recognise currency at a glance.
-     *   3  intaglio — vertical hairlines at three-pixel pitch. Engraving.
+     *   1  the cut edges of the stack, seen end-on along the foot. Paired with
+     *      the stepped shadows below, this is what says "a bundle" and not "a
+     *      note" — the old build was one sheet with a stripe across it.
+     *   2  lathe work, close to vertical. 86deg rather than 90 because a
+     *      hairline exactly on the pixel grid beats against it and shimmers as
+     *      the bundle moves.
+     *   3  a second, wider, diagonal pass. One direction alone is corduroy and
+     *      two at the same pitch is graph paper; two at different pitches and
+     *      angles is engine turning, which is what a banknote field actually is.
      *   4  the face, lit from the upper left like every other object here.
      */
     background:
       repeating-linear-gradient(
           0deg,
-          color-mix(in oklab, var(--note) 50%, var(--note-edge)) 0 1px,
-          transparent 1px calc(0.07 * var(--u))
+          color-mix(in oklab, var(--note-deep) 40%, transparent) 0 1px,
+          transparent 1px max(2.5px, calc(0.048 * var(--u)))
         )
-        bottom / 100% 26% no-repeat,
-      radial-gradient(
-        ellipse calc(0.44 * var(--u)) calc(0.4 * var(--u)) at 50% 46%,
-        color-mix(in oklab, var(--note-line) 55%, transparent) 0 55%,
-        transparent 78%
+        bottom / 100% 17% no-repeat,
+      repeating-linear-gradient(
+        86deg,
+        color-mix(in oklab, var(--note-ink) 17%, transparent) 0 1px,
+        transparent 1px max(2px, calc(0.042 * var(--u)))
       ),
       repeating-linear-gradient(
-        90deg,
-        color-mix(in oklab, var(--note-line) 24%, transparent) 0 1px,
-        transparent 1px 3px
+        -32deg,
+        color-mix(in oklab, var(--note-ink) 7%, transparent) 0 1px,
+        transparent 1px max(4.5px, calc(0.095 * var(--u)))
       ),
       linear-gradient(
         168deg,
-        color-mix(in oklab, var(--note) 86%, #fff) 0 16%,
-        var(--note) 30% 100%
+        color-mix(in oklab, var(--note-face) 84%, #fff) 0 14%,
+        var(--note-face) 32% 100%
       );
     /*
-     * The border, as a banknote actually prints one: cut edge, a plain margin,
-     * then a rule just inside it. Three inset rings do it with no extra
-     * elements — and the ORDER is load-bearing. Earlier shadows paint over
-     * later ones, so the wide opaque margin is listed last and the wider rule
-     * behind it survives only in the sliver between them.
+     * THICKNESS, and the ORDER is load-bearing: earlier shadows paint over
+     * later ones, so the three solid slivers of the stack sit on top of the
+     * soft shadow the whole bundle throws, and the cut-edge keyline is inset
+     * last so it survives on top of the face.
+     *
+     * Three offset copies rather than a drawn edge, because a box-shadow copy
+     * follows the corner radius and the rotation for free — a fourth element
+     * per bundle would not, and there are twenty-one of these.
      */
     box-shadow:
-      0 calc((1 + var(--air) * 9) * 1px) calc((3 + var(--air) * 13) * 1px)
-        rgb(0 0 0 / calc(var(--shade-a) * (0.55 + var(--air) * 0.45))),
-      inset 0 0 0 1px color-mix(in oklab, var(--note-edge) 62%, transparent),
-      inset 0 0 0 calc(0.13 * var(--u)) color-mix(in oklab, var(--note-edge) 34%, transparent),
-      inset 0 0 0 calc(0.1 * var(--u)) var(--note);
+      0 calc(0.028 * var(--u)) 0 0 color-mix(in oklab, var(--note-face) 56%, var(--note-deep)),
+      0 calc(0.055 * var(--u)) 0 calc(-0.006 * var(--u))
+        color-mix(in oklab, var(--note-face) 36%, var(--note-deep)),
+      0 calc(0.082 * var(--u)) 0 calc(-0.015 * var(--u))
+        color-mix(in oklab, var(--note-face) 18%, var(--note-deep)),
+      0 calc((3 + var(--air) * 9) * 1px) calc((5 + var(--air) * 13) * 1px)
+        rgb(0 0 0 / calc(var(--shade-a) * (0.62 + var(--air) * 0.45))),
+      inset 0 0 0 1px color-mix(in oklab, var(--note-deep) 58%, transparent);
 
     translate:
       calc((var(--x) + (var(--dx) - var(--x)) * var(--be)) * var(--u))
@@ -804,64 +911,92 @@ const U_W = +(100 / FOOT_W).toFixed(4);
   }
 
   /*
-   * The one that is yours takes the brand as the scene settles. Without this
-   * the last frame is two identical groups of paper and the sentence beside it
-   * — only one of them is yours — has nothing to point at.
+   * The printing. One flat ink, shaped by the plate — see the note on `--plate`
+   * for why this is a mask and not a picture. It sits under the strap because
+   * `::after` paints after `::before`, which is how a band lies over a note.
    */
-  .wad--available {
-    /* Re-point the three note inks towards the brand and the whole apparatus
-       above — face, engraving, vignette, border, stack edge — follows. */
-    --note: color-mix(in oklab, var(--brand-ink) calc(var(--e4) * 22%), var(--note-base));
-    --note-base: color-mix(in oklab, var(--stock-tractor) 82%, var(--stock-tractor-ink));
-    --note-line: color-mix(
-      in oklab,
-      var(--brand-ink) calc(var(--e4) * 34%),
-      color-mix(in oklab, var(--stock-tractor) 52%, var(--stock-tractor-ink))
-    );
-    --note-edge: color-mix(
-      in oklab,
-      var(--brand-ink) calc(var(--e4) * 40%),
-      color-mix(in oklab, var(--stock-tractor) 34%, var(--stock-tractor-ink))
-    );
+  .wad::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--note-ink);
+    opacity: 0.92;
+    -webkit-mask: var(--plate) 0 0 / 100% 100% no-repeat;
+    mask: var(--plate) 0 0 / 100% 100% no-repeat;
   }
 
   /*
-   * The strap. Narrow, kraft, sitting a little left of centre the way a band
-   * actually lands when somebody straps a bundle by hand.
+   * The one that is yours takes the brand as the scene settles.
    *
-   * It carries NOTHING. An earlier pass printed a teller's legend across it and
-   * the words were wider than the band, so every bundle read as a labelled card
-   * rather than as money. And a denomination is out of the question: 42 × 2,000
-   * is not 84,200, and this is a project whose build asserts exist to stop it
-   * shipping a month that lies. The count carries the quantity; every figure the
-   * visitor actually reads comes from story.ts and is exact.
+   * Worth knowing what this can and cannot do now the notes are proper money
+   * green: on a green-branded firm the shift is close to invisible, because it
+   * is a green moving towards a green. It still earns its place for the rescin
+   * — a navy or a burgundy firm gets a visible difference — but the thing that
+   * actually separates the two groups in the last frame is structural, not
+   * chromatic: one is inside a pencil fence, stamped and labelled, and the
+   * other is lying in the open. Do not raise these percentages to make the
+   * colour do more work; past about a third they stop being money.
+   */
+  .wad--available {
+    /* Re-point the three note inks towards the brand and the whole apparatus
+       above — face, plate, border, stack edges — follows. The brand never gets
+       a majority share: past about a third these stop being money. */
+    --note-face: color-mix(in oklab, var(--brand-ink) calc(var(--e4) * 18%), var(--money-face));
+    --note-ink: color-mix(in oklab, var(--brand-ink) calc(var(--e4) * 32%), var(--money-ink));
+    --note-deep: color-mix(in oklab, var(--brand-ink) calc(var(--e4) * 38%), var(--money-deep));
+  }
+
+  /*
+   * The strap: a printed currency band, kraft, wrapped round the stack.
+   *
+   * It lands in the gap the plate leaves between the portrait and the seal, so
+   * it covers engraving and nothing that carries meaning. It hangs further
+   * below the note than above it because that is where the stack is — a band
+   * whose two ends are symmetrical is a band round a single sheet.
+   *
+   * It carries NO AMOUNT, and that is the one place this deliberately parts
+   * company with the brief. A real Federal Reserve strap prints the value of
+   * what it holds, and printing one here would put a figure on the desk that
+   * nothing can check: the bundle count is derived from a round denomination,
+   * 21 × 4,000 is 84,000, and the caption two inches below says 84,200. On a
+   * page whose argument is that somebody checks the numbers, a $200 hole is
+   * not a detail. The corner denominations say "notes"; the count says how
+   * many; every figure the visitor READS comes from story.ts and is exact.
    */
   .wad::after {
     content: '';
     position: absolute;
-    left: 31%;
-    right: 54%;
-    top: -5%;
-    bottom: -5%;
-    /* Kraft, with the printed rule a teller's band carries down its middle, and
-       a shadow either side where the paper lifts over the stack. */
+    left: 47.5%;
+    right: 40.5%;
+    top: -7%;
+    bottom: -15%;
+    border-radius: calc(0.015 * var(--u));
+    /* One gradient does all three printed marks: the stripe down the middle and
+       the two hairlines a band carries near its folded edges. The stripe is
+       kept well under half strength — a currency band prints a bold colour
+       block, and at this size a bold colour block is a black bar through the
+       middle of the money. */
     background:
       linear-gradient(
           to right,
-          transparent 0 44%,
-          color-mix(in oklab, var(--stock-kraft-ink) 34%, transparent) 44% 47%,
-          transparent 47% 100%
+          transparent 0 10%,
+          color-mix(in oklab, var(--stock-kraft-ink) 26%, transparent) 10% 12%,
+          transparent 12% 39%,
+          color-mix(in oklab, var(--note-deep) 30%, transparent) 39% 61%,
+          transparent 61% 88%,
+          color-mix(in oklab, var(--stock-kraft-ink) 26%, transparent) 88% 90%,
+          transparent 90%
         )
         no-repeat,
       linear-gradient(
-        92deg,
-        color-mix(in oklab, var(--stock-kraft) 78%, var(--stock-kraft-ink)) 0 9%,
-        var(--stock-kraft) 22% 82%,
-        color-mix(in oklab, var(--stock-kraft) 84%, var(--stock-kraft-ink)) 100%
+        93deg,
+        color-mix(in oklab, var(--stock-kraft) 72%, var(--stock-kraft-ink)) 0 8%,
+        var(--stock-kraft) 22% 78%,
+        color-mix(in oklab, var(--stock-kraft) 78%, var(--stock-kraft-ink)) 100%
       );
     box-shadow:
-      inset 0 0 0 1px color-mix(in oklab, var(--stock-kraft-ink) 14%, transparent),
-      0 0 calc(0.06 * var(--u)) rgb(0 0 0 / calc(var(--shade-a) * 0.5));
+      inset 0 0 0 1px color-mix(in oklab, var(--stock-kraft-ink) 18%, transparent),
+      0 0 calc(0.07 * var(--u)) rgb(0 0 0 / calc(var(--shade-a) * 0.6));
   }
 
   /* ── the fence ────────────────────────────────────────────────────── */
@@ -871,29 +1006,65 @@ const U_W = +(100 / FOOT_W).toFixed(4);
    * that is the whole difference between it and the other two claims, and it is
    * why the scene ends with two objects on one desk instead of one.
    */
-  .fence {
+  /*
+   * The geometry, and nothing else. Placed with left/top rather than the
+   * translate it used to use, because a transform here would make this a
+   * stacking context and the three children have to reach three different
+   * layers of the desk.
+   */
+  .held {
     position: absolute;
-    left: 0;
-    top: 0;
+    left: calc((var(--x) - 0.45) * var(--u));
+    top: calc((var(--y) - 0.45) * var(--u));
     width: calc((var(--w) + 0.9) * var(--u));
     height: calc((var(--h) + 0.9) * var(--u));
-    translate: calc((var(--x) - 0.45) * var(--u)) calc((var(--y) - 0.45) * var(--u));
+  }
+
+  /* Same hand as the footprint: ruled, overshooting, never dashed. Drawn UNDER
+     the money, because the pencil went round it and not over it. */
+  .fence {
+    --rule: color-mix(in oklab, var(--desk-ink-quiet) 58%, transparent);
+    position: absolute;
+    inset: 0;
     z-index: 1;
-    border: 1px dashed var(--desk-ink-quiet);
-    border-radius: 2px;
     rotate: 0.4deg;
     scale: var(--e5) 1;
     transform-origin: left;
-    opacity: 0.85;
+    opacity: 0.9;
+    background-image:
+      linear-gradient(var(--rule), var(--rule)), linear-gradient(var(--rule), var(--rule)),
+      linear-gradient(var(--rule), var(--rule)), linear-gradient(var(--rule), var(--rule));
+    background-repeat: no-repeat;
+    background-size:
+      calc(100% + 0.44 * var(--u)) 1px,
+      calc(100% + 0.3 * var(--u)) 1px,
+      1px calc(100% + 0.28 * var(--u)),
+      1px calc(100% + 0.2 * var(--u));
+    background-position:
+      calc(-0.26 * var(--u)) 0,
+      calc(-0.12 * var(--u)) 100%,
+      0 calc(-0.17 * var(--u)),
+      100% calc(-0.07 * var(--u));
   }
 
-  /* Below the fence, not above it. Above, the tag sits outside the month's own
-     outline — which reads as a label on the desk rather than on the money, and
-     the whole point of this claim is that it never left the outline. */
+  /*
+   * Below the fence, not above it. Above, the tag sits outside the month's own
+   * outline — which reads as a label on the desk rather than on the money, and
+   * the whole point of this claim is that it never left the outline.
+   *
+   * It waits for 0.875, and that is the fix for the fragment that used to read
+   * "ATE" on the desk. It was written under the spread, so a bundle covered
+   * fifteen of its eighteen letters, and the fence's own draw-in scale squashed
+   * the three that survived to half width. Now it is out of the fence, above
+   * every bundle, and it is written once the desk beneath it is bare — which is
+   * also when it earns its place, since the closing image is two labelled
+   * objects on one desk.
+   */
   .fence__tag {
     position: absolute;
     left: 0;
     top: 100%;
+    z-index: 30;
     margin-top: 0.4em;
     font-family: var(--font-mono);
     font-size: clamp(0.5625rem, 0.42rem + 0.36vw, 0.75rem);
@@ -901,7 +1072,7 @@ const U_W = +(100 / FOOT_W).toFixed(4);
     text-transform: uppercase;
     white-space: nowrap;
     color: var(--desk-ink-quiet);
-    opacity: var(--e5);
+    opacity: clamp(0, calc((var(--p) - 0.875) / 0.05), 1);
   }
 
   /* ── stamps ───────────────────────────────────────────────────────── */
@@ -939,15 +1110,28 @@ const U_W = +(100 / FOOT_W).toFixed(4);
     top: 6%;
   }
 
+  /*
+   * Struck ON the money, which is where a stamp goes and where this one was
+   * not: it used to live inside the fence at z-index 1, so the two bundles it
+   * was stamping were painted over the top of it.
+   *
+   * Inked out of the notes rather than out of the desk, because it now lands on
+   * paper and paper does not change with the theme — desk ink is near-white
+   * after dark and would have vanished into a light green note.
+   */
   .stamp--held {
     --st: clamp(0, calc((var(--p) - 0.72) / 0.025), 1);
     left: 50%;
     top: 50%;
+    z-index: 30;
     translate: -50% -50%;
-    color: color-mix(in oklab, var(--desk-ink) 80%, transparent);
+    color: color-mix(in oklab, var(--money-deep) 86%, transparent);
   }
 
+  /* Above the money, while the ticket it was struck on stays behind it. A stamp
+     the spread could bury would be a stamp on nothing. */
   .claim .stamp {
+    z-index: 30;
     scale: calc(1 + (1 - var(--st, 0)) * 0.85);
     opacity: var(--st, 0);
   }
@@ -962,39 +1146,71 @@ const U_W = +(100 / FOOT_W).toFixed(4);
   /* ── the three claim documents ────────────────────────────────────── */
 
   /*
-   * Each one enters by a different verb and then PARKS cropped at a frame edge
+   * Each one enters by a different verb and then PARKS along the left margin
    * for the rest of the scene. Sized from --u so they belong to the same desk as
    * the bundles; the font-size is on this wrapper and not on .doc, which is a
    * container query container (lesson 1).
+   *
+   * NO z-index, NO filter, NO transform on this box. Any of the three makes it
+   * a stacking context, and the ticket and its stamp have to end up on opposite
+   * sides of the money. This is the single most breakable line in the file.
    */
   .claim {
     position: absolute;
-    z-index: 60;
     /*
      * Small, and expressed against `u` — which is what makes this fragile: `u`
      * grew by a quarter when the bundles were enlarged, so these grew with it
      * and the two tickets started overlapping each other down the left edge.
-     * The coefficients below are the old ones scaled back by that same quarter.
      * These are tickets that name a claim and get stamped; the money is the
      * subject of the scene, and at their first size each filled a quarter of
      * the frame and the desk disappeared behind them.
+     *
+     * Both numbers were cut by a further tenth when the tickets came in off the
+     * edge of the picture. Half of each used to hang outside the frame; whole,
+     * they are two objects 242 and 321 pixels tall in a column 581 tall, and
+     * they landed on top of each other. Width and font move TOGETHER — the
+     * width alone leaves a till slip as wide as it is long.
      */
-    width: calc(3.7 * var(--u));
-    font-size: calc(0.185 * var(--u));
-    filter: drop-shadow(0 6px 14px rgb(0 0 0 / calc(var(--shade-a) * 1.1)));
+    width: calc(3.3 * var(--u));
+    font-size: calc(0.165 * var(--u));
+  }
+
+  /*
+   * The ticket, and it is BACKGROUND.
+   *
+   * Both of these used to park half off the side of the picture, sliced through
+   * the middle of a figure — which is not "cropped by the frame", it is a
+   * number cut in half, and the owner read it as damage rather than as depth.
+   * They sit wholly inside the margin now, and they pay for the space by
+   * dropping behind the whole field: the money runs over them, and at just over
+   * half strength they stop competing with the sentence on the right.
+   *
+   * `z-index: -1` puts them behind `.spl__field` entire — the field is a
+   * stacking context of its own, so there is no ordering between a ticket and
+   * an individual bundle to get wrong.
+   */
+  .claim__sheet {
+    position: relative;
+    z-index: -1;
+    opacity: 0.55;
+    filter: drop-shadow(0 5px 12px rgb(0 0 0 / calc(var(--shade-a) * 0.85)));
   }
 
   .claim :global(.doc) {
     box-shadow: none;
   }
 
-  /* Payroll: comes for its money. Slides in from the left and stays there, so
-     the bundles it takes visibly pass BEHIND it on their way out. */
+  /* Payroll: comes for its money. Slides in from the left and stays there. The
+     slide is on the sheet, not on the ticket, so it cannot flatten the stamp
+     and the ticket into one layer. */
   .claim--payroll {
-    left: calc(-1.6 * var(--u));
-    top: 3%;
+    left: clamp(0.6rem, calc(0.42 * var(--u)), 2.4rem);
+    top: 0.5%;
     rotate: -2deg;
-    translate: calc((1 - var(--e1)) * -140%) 0;
+  }
+
+  .claim--payroll .claim__sheet {
+    translate: calc((1 - var(--e1)) * -170%) 0;
   }
 
   /*
@@ -1002,17 +1218,13 @@ const U_W = +(100 / FOOT_W).toFixed(4);
    * its rows ink themselves in behind the descending edge — the paper is
    * uncovered rather than scaled, so it reads as a roll being pulled off a
    * machine and not as a card growing.
-   *
-   * It parks cropped by two real frame edges, left and bottom. The right-hand
-   * side of the frame belongs to the working, and paper that stops dead in the
-   * middle of the screen reads as a bug rather than as a desk.
    */
   .claim--operating {
-    left: calc(-1.2 * var(--u));
-    /* Above the running strip in the corner, not through it. Cropped by the
-       left edge only — it used to be cropped by the bottom as well, and the
-       strip's own line printed straight across the slip's total. */
-    bottom: calc(1.5 * var(--u));
+    /* Offset from the register above it, so the two read as two things put down
+       on a desk rather than as one column of paper. */
+    left: clamp(1rem, calc(0.78 * var(--u)), 3.2rem);
+    /* Above the running strip in the corner, not through it. */
+    bottom: calc(0.7 * var(--u));
     rotate: 1.6deg;
   }
 
@@ -1238,14 +1450,26 @@ const U_W = +(100 / FOOT_W).toFixed(4);
      * working underneath. The stamp is the whole beat anyway — it says PAID and
      * the money leaves — so the ticket it was struck on is what gets cut.
      */
+    /*
+     * The ticket spans the desk instead of collapsing to nothing, and that is a
+     * fix rather than tidying. With `inset: auto` the box shrank to the size of
+     * its own stamp at the desk's top-left corner, so the stamps' offsets were
+     * percentages of a fifty-pixel box: PAID landed at x = −1, half off the side
+     * of the phone, and SPENT's `bottom` measured up from a box that was already
+     * at the top — which is why it printed ABOVE the stamp it was meant to sit
+     * below. Given a real box the same offsets mean what they say.
+     *
+     * The rotation has to go with it: turning a full-desk box swings the stamps
+     * out of the corners they were placed in.
+     */
     .claim {
       width: auto;
-      inset: auto;
-      filter: none;
+      inset: 0;
+      rotate: none;
+      pointer-events: none;
     }
 
-    .claim :global(.doc),
-    .claim__roll {
+    .claim__sheet {
       display: none;
     }
 
@@ -1255,16 +1479,18 @@ const U_W = +(100 / FOOT_W).toFixed(4);
       color: color-mix(in oklab, var(--desk-ink) 72%, transparent);
     }
 
+    /* Clear of the heading above and of the label below, both of which are
+       already measured — `--head` and `--cap` are what the desk itself uses. */
     .claim--payroll .stamp {
-      left: 8%;
-      top: 6%;
+      left: max(0.75rem, calc(0.6 * var(--u)));
+      top: calc(var(--head) + 0.35 * var(--u));
       right: auto;
       bottom: auto;
     }
 
     .claim--operating .stamp {
-      left: 8%;
-      bottom: 8%;
+      left: max(0.75rem, calc(0.6 * var(--u)));
+      bottom: calc(var(--cap) + 0.35 * var(--u));
       right: auto;
       top: auto;
     }
