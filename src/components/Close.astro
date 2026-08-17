@@ -38,6 +38,7 @@ import BeatBand from './BeatBand.astro';
 import { close as copy } from '../config/content';
 import { close as when, documents, understand, meta } from '../config/story';
 import { moneyShort } from '../lib/format';
+import { closedOnShort } from '../lib/date';
 import { RUN } from '../config/scenes';
 
 /* Reading order of the hand, left to right: what came in, then what went out. */
@@ -104,7 +105,7 @@ const figures = copy.figures.map((f) => {
   };
 });
 
-const dateOf = (m: { closedOn: string }) => `${m.closedOn.slice(0, 3)} ${when.day}`.toUpperCase();
+const dateOf = (m: { closedOn: string }) => closedOnShort(m.closedOn, when.day);
 const stampDate = dateOf(when.done[when.done.length - 1]!);
 
 /*

@@ -44,7 +44,7 @@ const credentials = [
 ];
 
 const counts = [
-  { lead: copy.countLead.years, value: String(founded), note: `${proof.yearsInBusiness} years` },
+  { lead: copy.countLead.years, value: String(founded), note: copy.yearsNote(proof.yearsInBusiness) },
   { lead: copy.countLead.clients, value: `${clientsRounded}+`, note: audience.clientType },
   { lead: copy.countLead.states, value: audience.states.join(' · '), note: null },
 ];
@@ -220,7 +220,7 @@ const averageStars = reviews.reduce((s, r) => s + r.stars, 0) / Math.max(1, revi
               </header>
 
               <p class="review__meta">
-                <span class="stars" aria-label={`${t.stars} out of 5`}>
+                <span class="stars" aria-label={copy.starsLabel(t.stars)}>
                   {Array.from({ length: 5 }, (_, s) => (
                     <svg viewBox="0 0 20 20" data-on={s < t.stars ? '' : null}>
                       <path d="M10 1.6 12.6 7l5.9.8-4.3 4.1 1 5.8L10 15l-5.2 2.7 1-5.8L1.5 7.8 7.4 7Z" />

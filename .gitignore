@@ -31,3 +31,10 @@ RESKIN.md
 .env
 .env.*
 !.env.example
+
+# Debug debris from the 2026-08-12 mobile session. Nothing in the build
+# references any of them; they are ignored rather than deleted so the next
+# `git add -A` cannot push 178 KB of compiled CSS to a public repo.
+built.css
+talkpage.html
+body.txt

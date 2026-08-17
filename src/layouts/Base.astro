@@ -4,10 +4,31 @@ import '@fontsource-variable/geist-mono';
 import '@fontsource/instrument-serif/400.css';
 import '@fontsource/instrument-serif/400-italic.css';
 
+/*
+ * The display serif, for the language that Instrument Serif cannot set.
+ *
+ * Instrument Serif ships `latin` and `latin-ext` only, and the one place the
+ * serif is used — the italic second line of the hero — is the first thing on
+ * the page. In Russian it would fall back to Georgia mid-sentence, which reads
+ * as a broken page rather than as a different font.
+ *
+ * Imported as URLs rather than as `@fontsource/...css` on purpose: a stylesheet
+ * import is hoisted and would put four unused `@font-face` rules into the
+ * English build's inlined CSS. This way Vite emits the files, the RU document
+ * alone references them, and the accepted English build stays byte-identical.
+ * The three subsets are the ones a Russian page actually needs — Cyrillic for
+ * the words, latin for the figures and punctuation, latin-ext for the ruble
+ * sign at U+20BD.
+ */
+import serifCyrillic from '@fontsource/playfair-display/files/playfair-display-cyrillic-400-italic.woff2?url';
+import serifLatin from '@fontsource/playfair-display/files/playfair-display-latin-400-italic.woff2?url';
+import serifLatinExt from '@fontsource/playfair-display/files/playfair-display-latin-ext-400-italic.woff2?url';
+
 import '../styles/tokens.css';
 import '../styles/base.css';
 
 import { firm } from '../config/firm';
+import { LOCALE } from '../config/locale';
 import { paletteCss, type ThemeName } from '../lib/palette';
 import { href } from '../lib/url';
 
@@ -32,11 +53,27 @@ const palette = paletteCss(firm.brandColor, theme);
  */
 const metaDescription = firm.indexable
   ? description
-  : `Design demonstration. ${firm.name} is a fictional firm; the content, figures, reviews and contact details are invented.`;
+  : LOCALE === 'ru'
+    ? `Демонстрация дизайна. «${firm.name}» — вымышленная фирма; тексты, цифры, отзывы и контакты придуманы.`
+    : `Design demonstration. ${firm.name} is a fictional firm; the content, figures, reviews and contact details are invented.`;
+
+/*
+ * Unicode ranges copied verbatim from `@fontsource/playfair-display/400-italic.css`.
+ * Without them the browser downloads whichever subset is declared last and uses
+ * it for everything, so the Cyrillic file would end up setting the digits too.
+ */
+const serifFace =
+  LOCALE === 'ru'
+    ? `
+@font-face{font-family:'Playfair Display';font-style:italic;font-weight:400;font-display:swap;src:url(${serifCyrillic}) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;}
+@font-face{font-family:'Playfair Display';font-style:italic;font-weight:400;font-display:swap;src:url(${serifLatinExt}) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;}
+@font-face{font-family:'Playfair Display';font-style:italic;font-weight:400;font-display:swap;src:url(${serifLatin}) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+`.trim()
+    : null;
 ---
 
 <!doctype html>
-<html lang="en" data-theme={theme}>
+<html lang={LOCALE} data-theme={theme} data-locale={LOCALE}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -54,6 +91,7 @@ const metaDescription = firm.indexable
       !firm.indexable && <meta name="robots" content="noindex, nofollow, noarchive" />
     }
     <link rel="icon" href={href('/favicon.svg')} type="image/svg+xml" />
+    {serifFace && <style set:html={serifFace} />}
     <style set:html={palette}></style>
   </head>
 

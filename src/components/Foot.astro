@@ -19,10 +19,12 @@
  */
 import { firm } from '../config/firm';
 import { footer as copy, hero, licensureNote } from '../config/content';
+import { LOCALE } from '../config/locale';
 import FirmMark from './FirmMark.astro';
 import Social from './Social.astro';
-import { href } from '../lib/url';
+import { href, otherLocaleHome } from '../lib/url';
 
+const OTHER = LOCALE === 'ru' ? 'en' : 'ru';
 const year = new Date().getFullYear();
 const { contact, audience } = firm;
 const mailHref = `mailto:${contact.email}`;
@@ -111,6 +113,24 @@ const cityLine = `${contact.city}, ${contact.state} ${contact.zip}`;
           }
         </ul>
       </section>
+
+      <!--
+        The site is published in two languages, so it has to say so somewhere a
+        visitor would look. A fifth column rather than anything in the
+        letterhead: `.foot__cols` is an auto-fit grid, so it absorbs one more
+        without a line of CSS, and the header composition the owner signed off
+        on is left alone.
+      -->
+      <section class="foot__col">
+        <h2 class="foot__lead u-caps">{copy.langLead}</h2>
+        <ul>
+          <li>
+            <a class="foot__link" href={otherLocaleHome} lang={OTHER} hreflang={OTHER}>
+              {copy.langOther}
+            </a>
+          </li>
+        </ul>
+      </section>
     </div>
 
     <p class="foot__rule" aria-hidden="true"></p>
@@ -120,7 +140,7 @@ const cityLine = `${contact.city}, ${contact.state} ${contact.zip}`;
         © {year} {firm.name}. {cityLine}.
       </p>
       <p class="foot__built">
-        {copy.builtLine} {hero.pileCaption} — a worked example, not a client result.
+        {copy.builtLine} {hero.pileCaption} {copy.figuresTail}
         {
           /* Every other disclaimer on this page scopes to the figures or the
              form. On a public URL the firm itself is the thing that needs

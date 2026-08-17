@@ -91,26 +91,40 @@ const steps = m.work.map((w, i) => ({
  * taste; it happened, on the right-hand column at 1440x900. The assertion below
  * makes it a build error rather than something to spot in a screenshot.
  */
-const working = [
-  { t: '40,825', x: 1.5, y: 0.0, at: 0.14, ok: 0.53, d: 13, s: -4 },
-  { t: '12,475', x: 89, y: 0.0, at: 0.16, ok: 0.51, d: 15, s: -9 },
-  { t: '26,900', x: 43, y: 0.0, at: 0.18, ok: 0.57, d: 12, s: -2 },
-  { t: 'Mar 04', x: 22, y: 0.06, at: 0.2, ok: 0.53, d: 17, s: -7 },
-  { t: '4,000', x: 3, y: 0.24, at: 0.22, ok: 0.6, d: 16, s: -6 },
-  { t: 'savings?', x: 88.5, y: 0.48, at: 0.24, ok: 9, d: 14, s: -11, bad: true },
-  { t: '12,475', x: 46, y: 0.44, at: 0.26, ok: 0.51, d: 11, s: -3 },
-  { t: '26,900', x: 87.5, y: 0.24, at: 0.28, ok: 0.57, d: 12, s: -14 },
-  { t: 'Mar 18', x: 24, y: 0.52, at: 0.3, ok: 0.57, d: 15, s: -6 },
-  { t: '84,200', x: 7, y: 0.48, at: 0.32, ok: 0.62, d: 13, s: -13 },
-  { t: 'Mar 23', x: 88, y: 0.72, at: 0.34, ok: 0.51, d: 15, s: -5 },
-  { t: '12,475', x: 68, y: 0.54, at: 0.36, ok: 0.51, d: 13, s: -9 },
-  { t: '96,675', x: 1.5, y: 0.72, at: 0.38, ok: 0.62, d: 12, s: -10 },
-  { t: '4,000', x: 41, y: 0.88, at: 0.4, ok: 0.6, d: 16, s: -2 },
-  { t: '−12,475', x: 86, y: 0.96, at: 0.42, ok: 0.62, d: 16, s: -4 },
-  { t: '84,200', x: 66, y: 0.92, at: 0.44, ok: 0.62, d: 14, s: -12 },
-  { t: '=84,200', x: 4, y: 0.96, at: 0.46, ok: 0.62, d: 14, s: -8 },
-  { t: '0.00', x: 24, y: 0.98, at: 0.48, ok: 0.58, d: 12, s: -5 },
+const marks = [
+  { x: 1.5, y: 0.0, at: 0.14, ok: 0.53, d: 13, s: -4 },
+  { x: 89, y: 0.0, at: 0.16, ok: 0.51, d: 15, s: -9 },
+  { x: 43, y: 0.0, at: 0.18, ok: 0.57, d: 12, s: -2 },
+  { x: 22, y: 0.06, at: 0.2, ok: 0.53, d: 17, s: -7 },
+  { x: 3, y: 0.24, at: 0.22, ok: 0.6, d: 16, s: -6 },
+  { x: 88.5, y: 0.48, at: 0.24, ok: 9, d: 14, s: -11, bad: true },
+  { x: 46, y: 0.44, at: 0.26, ok: 0.51, d: 11, s: -3 },
+  { x: 87.5, y: 0.24, at: 0.28, ok: 0.57, d: 12, s: -14 },
+  { x: 24, y: 0.52, at: 0.3, ok: 0.57, d: 15, s: -6 },
+  { x: 7, y: 0.48, at: 0.32, ok: 0.62, d: 13, s: -13 },
+  { x: 88, y: 0.72, at: 0.34, ok: 0.51, d: 15, s: -5 },
+  { x: 68, y: 0.54, at: 0.36, ok: 0.51, d: 13, s: -9 },
+  { x: 1.5, y: 0.72, at: 0.38, ok: 0.62, d: 12, s: -10 },
+  { x: 41, y: 0.88, at: 0.4, ok: 0.6, d: 16, s: -2 },
+  { x: 86, y: 0.96, at: 0.42, ok: 0.62, d: 16, s: -4 },
+  { x: 66, y: 0.92, at: 0.44, ok: 0.62, d: 14, s: -12 },
+  { x: 4, y: 0.96, at: 0.46, ok: 0.62, d: 14, s: -8 },
+  { x: 24, y: 0.98, at: 0.48, ok: 0.58, d: 12, s: -5 },
 ];
+
+/*
+ * The figures are the month's, so they come from the month. A locale that adds
+ * or drops one silently would leave a mark with no text or a figure with no
+ * place on the desk; make it a build error instead.
+ */
+if (reconcile.working.length !== marks.length) {
+  throw new Error(
+    `Reconcile — the story supplies ${reconcile.working.length} pencil figures ` +
+      `but the margin has ${marks.length} places to write them.`,
+  );
+}
+
+const working = marks.map((m, i) => ({ ...m, t: reconcile.working[i]! }));
 
 /*
  * Two marks share a column if their left edges are within a sixth of the frame,

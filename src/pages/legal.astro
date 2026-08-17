@@ -26,11 +26,11 @@ import Base from '../layouts/Base.astro';
 import Masthead from '../components/Masthead.astro';
 import Foot from '../components/Foot.astro';
 import { firm } from '../config/firm';
-import { legal } from '../config/content';
+import { a11y, legal } from '../config/content';
 import { href } from '../lib/url';
 ---
 
-<Base title={`${firm.name} — the small print`} description={legal.intro} theme="light">
+<Base title={`${firm.name} — ${legal.docTitle}`} description={legal.intro} theme="light">
   <Masthead />
 
   <main class="lg">
@@ -42,7 +42,7 @@ import { href } from '../lib/url';
         <p class="lg__updated">{legal.updated}</p>
       </header>
 
-      <nav class="lg__toc" aria-label="Sections">
+      <nav class="lg__toc" aria-label={a11y.sections}>
         {legal.sections.map((s) => <a href={`#${s.id}`}>{s.title}</a>)}
       </nav>
 

@@ -180,6 +180,8 @@
   --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', 'Cascadia Mono', monospace;
   --font-serif: 'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif;
+  /* Substituted for Cyrillic below. Instrument Serif has no Cyrillic at all —
+     see the note over the font imports in `Base.astro`. */
 
   /* Copy never goes below --fs-sm (16px). --fs-2xs is for pencil marks on the
      desk: ornament, never information the visitor needs. */
@@ -316,6 +318,23 @@
   --z-page: 1;
   --z-strip: 40;
   --z-header: 50;
+}
+
+/*
+ * The Cyrillic display serif.
+ *
+ * One substitution, in one place, for one language — the italic hero line is
+ * the only thing on the page set in the serif. Playfair Display is the nearest
+ * high-contrast editorial face that has a real Cyrillic italic; the alternative
+ * with the closer colour, Prata, has no italic at all and would have been
+ * skewed by the browser.
+ *
+ * The `@font-face` rules are emitted by `Base.astro` and only into the Russian
+ * document, so this family does not exist in the English build and this rule
+ * can never match there.
+ */
+html[data-locale='ru'] {
+  --font-serif: 'Playfair Display', ui-serif, Georgia, 'Times New Roman', serif;
 }
 
 @media (prefers-reduced-motion: reduce) {

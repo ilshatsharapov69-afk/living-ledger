@@ -21,6 +21,7 @@ import { firm } from '../config/firm';
 import { pricing as copy } from '../config/content';
 import { understand, close as when, meta } from '../config/story';
 import { em, moneyShort } from '../lib/format';
+import { closedOnLong } from '../lib/date';
 import { href } from '../lib/url';
 
 const plans = firm.pricing.plans;
@@ -41,7 +42,7 @@ const report = [understand.earned, understand.cash, understand.balance].map((u) 
 }));
 
 /* Dated the same way the folder is: a month is shut in the month after it. */
-const sent = `${when.done[when.done.length - 1]!.closedOn} ${when.day}`;
+const sent = closedOnLong(when.done[when.done.length - 1]!.closedOn, when.day);
 ---
 
 <section class="pr" id="pricing" data-scene="pricing" data-scene-mode="enter" data-scene-span="1.4">
@@ -105,10 +106,12 @@ const sent = `${when.done[when.done.length - 1]!.closedOn} ${when.day}`;
                 <span class="plan__quoted">{copy.quotedLabel}</span>
               ) : (
                 <>
-                  <span class="plan__figure u-num">
-                    {firm.pricing.currency}
-                    {p.price.toLocaleString('en-US')}
-                  </span>
+                  {/* Formatted, not concatenated. A prefixed symbol and an
+                      `en-US` grouping produced "$1,400" correctly and "₽45,000"
+                      wrongly — the ruble sign trails the figure and the groups
+                      are spaces. `moneyShort` already knows both, and it
+                      produces the identical string for the English build. */}
+                  <span class="plan__figure u-num">{moneyShort(p.price)}</span>
                   <span class="plan__period">{firm.pricing.period}</span>
                 </>
               )}

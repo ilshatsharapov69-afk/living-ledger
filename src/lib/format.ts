@@ -1,28 +1,55 @@
-const usd = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
+import { BCP47, LOCALE, type Locale } from '../config/locale';
 
-const usdRound = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  maximumFractionDigits: 0,
-});
+/**
+ * Money, in the currency of the language being built.
+ *
+ * A currency is not a translation of another currency, so this is a real
+ * switch rather than a swapped symbol: `ru-RU` groups with non-breaking
+ * spaces, puts the sign last, and uses a comma for the decimal. Handing all of
+ * that to `Intl` rather than to a template string is the only way the Russian
+ * build prints figures a Russian reader does not have to decode.
+ *
+ * Parentheses for negatives survive both languages: РСБУ statements bracket
+ * them exactly the way US ones do.
+ */
+const CURRENCY: Record<Locale, string> = { en: 'USD', ru: 'RUB' };
 
-/** $40,825.00 — what a document prints. */
-export const money = (n: number) => usd.format(n);
+/**
+ * Bound to one language. Components use the build's own (below); the copy
+ * files ask for theirs by name, because both languages' copy is assembled on
+ * every build and only one of them is rendered.
+ */
+export const formatters = (locale: Locale) => {
+  const full = new Intl.NumberFormat(BCP47[locale], {
+    style: 'currency',
+    currency: CURRENCY[locale],
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
-/** $84,200 — what a headline says. */
-export const moneyShort = (n: number) => usdRound.format(n);
+  const round = new Intl.NumberFormat(BCP47[locale], {
+    style: 'currency',
+    currency: CURRENCY[locale],
+    maximumFractionDigits: 0,
+  });
 
-/** ($12,000) — accounting negatives, as they appear on a real statement. */
-export const moneySigned = (n: number) =>
-  n < 0 ? `(${usd.format(Math.abs(n))})` : usd.format(n);
+  return {
+    /** $40,825.00 · 4 082 500,00 ₽ — what a document prints. */
+    money: (n: number) => full.format(n),
+    /** $84,200 · 8 420 000 ₽ — what a headline says. */
+    moneyShort: (n: number) => round.format(n),
+    /** ($12,000) — accounting negatives, as they appear on a real statement. */
+    moneySigned: (n: number) => (n < 0 ? `(${full.format(Math.abs(n))})` : full.format(n)),
+    moneySignedShort: (n: number) => (n < 0 ? `(${round.format(Math.abs(n))})` : round.format(n)),
+  };
+};
 
-export const moneySignedShort = (n: number) =>
-  n < 0 ? `(${usdRound.format(Math.abs(n))})` : usdRound.format(n);
+const bound = formatters(LOCALE);
+
+export const money = bound.money;
+export const moneyShort = bound.moneyShort;
+export const moneySigned = bound.moneySigned;
+export const moneySignedShort = bound.moneySignedShort;
 
 /* -------------------------------------------------------------- emphasis */
 

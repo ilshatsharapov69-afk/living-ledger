@@ -35,6 +35,12 @@ const links = [
   { id: 'instagram', label: 'Instagram', href: firm.social.instagram },
   { id: 'linkedin', label: 'LinkedIn', href: firm.social.linkedin },
   { id: 'google', label: 'Google Business Profile', href: firm.social.google },
+  /* The Russian half of the row. A firm in Kazan is reached on Telegram the way
+     a firm in Austin is reached on LinkedIn — and the three marks above it are
+     not merely unused there, they are marks of services that do not operate in
+     that market. Both locales carry the same five slots and null the ones they
+     are not on, which is the rule the whole row already worked by. */
+  { id: 'telegram', label: 'Telegram', href: firm.social.telegram },
   { id: 'whatsapp', label: 'WhatsApp', href: firm.social.whatsapp },
 ].filter((l): l is { id: string; label: string; href: string } => Boolean(l.href));
 
@@ -126,6 +132,13 @@ const ramp = `ig-ramp-${Math.random().toString(36).slice(2, 9)}`;
                 />
               )}
 
+              {l.id === 'telegram' && (
+                <path
+                  fill="currentColor"
+                  d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.64 6.8-1.56 7.36c-.12.53-.43.66-.87.41l-2.38-1.76-1.15 1.11c-.13.13-.24.24-.48.24l.17-2.44 4.42-4c.2-.17-.04-.26-.3-.09l-5.46 3.43-2.35-.73c-.51-.16-.52-.51.11-.76l9.18-3.54c.42-.15.8.1.66.77Z"
+                />
+              )}
+
               {l.id === 'whatsapp' && (
                 <path
                   fill="currentColor"
@@ -206,6 +219,16 @@ const ramp = `ig-ramp-${Math.random().toString(36).slice(2, 9)}`;
      asked what colour Instagram is. */
   .social__link[data-net='instagram'] {
     --net-hi: #d62976;
+  }
+
+  .social__link[data-net='telegram'] {
+    --net: #2aabee;
+    --net-hi: #2aabee;
+  }
+
+  .social__link[data-net='whatsapp'] {
+    --net: #25d366;
+    --net-hi: #25d366;
   }
 
   .social__glyph {

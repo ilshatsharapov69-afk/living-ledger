@@ -31,22 +31,26 @@ const capture = (args, cwd) =>
   execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
 
 /*
- * Astro's own entry, not `npm run build:pages`: Node refuses to spawn a `.cmd`
- * shim without a shell, which is what `npm` is on Windows. `PAGES_BUILD` is the
- * non-npm half of the switch in astro.config.mjs — without it this would build
- * for a domain root and every link on the deployed site would be dead.
+ * BOTH languages, through `build-both.js`, which owns the order they have to be
+ * built in and asserts each document came out in its own language. This used to
+ * be a single `astro build`; that shipped the English site and quietly left the
+ * Russian half off the deploy.
+ *
+ * Spawned via `process.execPath` rather than `npm run`: Node refuses to spawn a
+ * `.cmd` shim without a shell, which is what `npm` is on Windows. `--pages` is
+ * what puts the repo name in front of every asset path — without it the site
+ * deploys and every link on it is dead.
  */
-console.log('\n— building for the Pages subpath —');
+console.log('\n— building both languages for the Pages subpath —');
 rmSync('dist', { recursive: true, force: true });
-execFileSync(process.execPath, ['node_modules/astro/bin/astro.mjs', 'build'], {
-  stdio: 'inherit',
-  env: { ...process.env, PAGES_BUILD: '1' },
-});
+execFileSync(process.execPath, ['scripts/build-both.js', '--pages'], { stdio: 'inherit' });
 
-if (!existsSync(join('dist', '.nojekyll'))) {
-  /* `_astro/` starts with an underscore, which Jekyll drops. Without this file
-     the site deploys and then serves unstyled HTML with no fonts. */
-  throw new Error('dist/.nojekyll is missing — Pages would strip _astro/');
+for (const dir of ['dist', join('dist', 'ru')]) {
+  if (!existsSync(join(dir, '.nojekyll'))) {
+    /* `_astro/` starts with an underscore, which Jekyll drops. Without this file
+       the site deploys and then serves unstyled HTML with no fonts. */
+    throw new Error(`${dir}/.nojekyll is missing — Pages would strip _astro/`);
+  }
 }
 
 console.log('\n— refreshing the gh-pages clone —');

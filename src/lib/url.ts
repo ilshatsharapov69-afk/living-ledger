@@ -20,6 +20,8 @@
  * so this is a no-op everywhere except a subpath deploy.
  */
 
+import { LOCALE } from '../config/locale';
+
 /* Astro hands this over with a trailing slash; the paths below start with one,
    and two in a row would be a protocol-relative URL pointing at another host. */
 const BASE = import.meta.env.BASE_URL.replace(/\/+$/, '');
@@ -32,3 +34,19 @@ const BASE = import.meta.env.BASE_URL.replace(/\/+$/, '');
  * around a config value that might hold either.
  */
 export const href = (path: string): string => (path.startsWith('/') ? `${BASE}${path}` : path);
+
+/**
+ * The front page of the OTHER language.
+ *
+ * The one link on the site that has to leave this build's base rather than
+ * resolve against it, which is why it cannot go through `href()`: in the
+ * Russian build the base already ends in `/ru`, so `href('/')` would point at
+ * the Russian home page it is supposed to be leaving.
+ *
+ * Composed rather than hardcoded so it survives the subpath deploy too:
+ * `/living-ledger/` and `/living-ledger/ru/` are the same pair one level down.
+ */
+const RU_SEGMENT = '/ru';
+
+export const otherLocaleHome =
+  LOCALE === 'ru' ? `${BASE.slice(0, -RU_SEGMENT.length)}/` : `${BASE}${RU_SEGMENT}/`;
