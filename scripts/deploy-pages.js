@@ -81,4 +81,4 @@ const source = capture(['rev-parse', '--short', 'HEAD']);
 run('git', ['commit', '-m', `Deploy ${source}`], WORK);
 run('git', ['push', 'origin', BRANCH], WORK);
 
-console.log(`\nPushed. Pages rebuilds in under a minute:\n  ${LIVE}\n`);
+console.log(`\nPushed. Pages rebuilds in under a minute:\n  ${LIVE}\n  ${LIVE}ru/\n`);
